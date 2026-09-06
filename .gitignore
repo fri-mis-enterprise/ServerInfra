@@ -3,3 +3,7 @@
 .local
 IBS_Dumps
 .terminfo/
+.bash_history
+.histfile
+.zcompdump
+.config
