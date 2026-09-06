@@ -15,5 +15,9 @@ compinit
 PROMPT='%F{cyan}%~%f ❯ '
 
 if command -v tmux >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ -n "$SSH_CONNECTION" ]]; then
-    tmux attach-session -t main 2>/dev/null || tmux new-session -s SSH
+    if tmux has-session -t SSH 2>/dev/null; then
+        tmux attach-session -t SSH
+    else
+        tmux new-session -s SSH
+    fi
 fi
