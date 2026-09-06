@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Tokyo Night
+BG='\033[48;2;26;27;38m'
+FG='\033[38;2;169;177;214m'
+BLUE='\033[38;2;122;162;247m'
+CYAN='\033[38;2;125;207;255m'
+PURPLE='\033[38;2;187;154;247m'
+GREEN='\033[38;2;158;206;106m'
+YELLOW='\033[38;2;224;175;104m'
+RESET='\033[0m'
+
+clear
+
+printf "${BG}${FG}\n"
+printf "  ${BLUE}TMUX CHEATSHEET${FG}\n"
+printf "  ──────────────────────────────────────────────\n\n"
+
+printf "  ${PURPLE}PREFIX${FG}\n"
+printf "  ${CYAN}Ctrl-a${FG}          Prefix\n\n"
+
+printf "  ${PURPLE}WINDOWS${FG}\n"
+printf "  ${CYAN}Ctrl-a Tab${FG}      Next window\n"
+printf "  ${CYAN}Ctrl-a 1-9${FG}      Select window\n"
+printf "  ${CYAN}Ctrl-a c${FG}        New window\n\n"
+
+printf "  ${PURPLE}PANES${FG}\n"
+printf "  ${CYAN}Ctrl-a |${FG}        Split horizontally\n"
+printf "  ${CYAN}Ctrl-a -${FG}        Split vertically\n"
+printf "  ${CYAN}Ctrl-a ←${FG}        Move left\n"
+printf "  ${CYAN}Ctrl-a ↓${FG}        Move down\n"
+printf "  ${CYAN}Ctrl-a ↑${FG}        Move up\n"
+printf "  ${CYAN}Ctrl-a →${FG}        Move right\n\n"
+
+printf "  ${PURPLE}OTHER${FG}\n"
+printf "  ${CYAN}Ctrl-a h${FG}        This help\n"
+printf "  ${CYAN}Ctrl-a d${FG}        Detach\n"
+printf "  ${CYAN}Ctrl-a t${FG}        Show time\n\n"
+
+printf "  ${GREEN}──────────────────────────────────────────────${FG}\n"
+printf "  ${YELLOW}Press Enter to close${RESET}\n"
+printf "${RESET}"

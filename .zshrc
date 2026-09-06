@@ -13,3 +13,7 @@ compinit
 # End of lines added by compinstall
 
 PROMPT='%F{cyan}%~%f ❯ '
+
+if command -v tmux >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ -n "$SSH_CONNECTION" ]]; then
+    tmux attach-session -t main 2>/dev/null || tmux new-session -s SSH
+fi
