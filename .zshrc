@@ -21,3 +21,6 @@ if command -v tmux >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ -n "$SSH_CONNECTION
         tmux new-session -s SSH
     fi
 fi
+
+# Trash for safely deleting files using 'rm' command
+alias rm='trash-put'

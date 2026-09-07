@@ -9,4 +9,9 @@
 	handle_path /n8n/* {
 		reverse_proxy n8n:5678
 	}
+
+	handle {
+		reverse_proxy homarr:7575
+	}
+
 }
