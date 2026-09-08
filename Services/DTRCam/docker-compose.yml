@@ -1,0 +1,42 @@
+services:
+  dtrcam:
+    build:
+      context: https://github.com/Sophistiqq/DTRCam.git#main
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_SUPABASE_URL: ${PUBLIC_SUPABASE_URL:?PUBLIC_SUPABASE_URL is required}
+        PUBLIC_SUPABASE_ANON_KEY: ${PUBLIC_SUPABASE_ANON_KEY:?PUBLIC_SUPABASE_ANON_KEY is required}
+        PUBLIC_BASE_PATH: /dtrcam
+        PUBLIC_SENTRY_DSN: ${PUBLIC_SENTRY_DSN:-}
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 4173
+
+    expose:
+      - "4173"
+
+    networks:
+      - proxy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:4173/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  proxy:
+    external: true

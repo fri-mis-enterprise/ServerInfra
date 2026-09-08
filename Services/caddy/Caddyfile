@@ -10,6 +10,12 @@
 		reverse_proxy n8n:5678
 	}
 
+	redir /dtrcam /dtrcam/ 308
+
+	handle /dtrcam/* {
+		reverse_proxy dtrcam:4173
+	}
+
 	handle {
 		reverse_proxy homarr:7575
 	}

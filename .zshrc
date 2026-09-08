@@ -24,3 +24,5 @@ fi
 
 # Trash for safely deleting files using 'rm' command
 alias rm='trash-put'
+
+eval "$(zoxide init zsh --cmd cd)"

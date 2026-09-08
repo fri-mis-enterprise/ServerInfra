@@ -8,4 +8,5 @@ IBS_Dumps
 .zcompdump
 .config
 IBS
-homarr/appdata
+Services/homarr/appdata
+.env*
