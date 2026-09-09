@@ -30,7 +30,7 @@ services:
           "CMD",
           "bun",
           "-e",
-          "fetch('http://127.0.0.1:4173/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+          "fetch('http://127.0.0.1:4173/dtrcam/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
         ]
       interval: 30s
       timeout: 5s
