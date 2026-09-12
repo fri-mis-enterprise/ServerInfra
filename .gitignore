@@ -11,3 +11,4 @@ IBS
 Services/homarr/appdata
 Services/FastAudit/data/
 .env*
+.codex

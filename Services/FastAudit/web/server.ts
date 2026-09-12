@@ -1,16 +1,92 @@
 import { Database } from "bun:sqlite";
 import { inflateSync } from "node:zlib";
-const db=new Database(process.env.AUDIT_DB??"/data/audit.db",{readonly:true});
+import { layout, listView, detailView } from "./views";
+
+const db = new Database(process.env.AUDIT_DB ?? "/data/audit.db", { readonly: true });
 db.exec("PRAGMA busy_timeout=30000");
-const base=(process.env.BASE_PATH??"").replace(/\/$/,"");
-const esc=(v:any)=>String(v??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
-const unpack=(v:any)=>v?JSON.parse(inflateSync(v).toString()):{};
-const fmt=(v:any)=>new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short"}).format(new Date(v));
-const page=(b:string)=>`<!doctype html><meta name=viewport content="width=device-width"><title>FAST Audit</title><style>body{font:14px system-ui;margin:2rem;max-width:1100px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.45rem;text-align:left}a{color:#06c}form{display:flex;gap:.5rem;margin-bottom:1rem}input,select,button{padding:.4rem}.changed{background:#fff3b0}.old{background:#ffd9d9}.new{background:#d9f7df;font-weight:600}</style>${b}`;
-function list(u:URL){const q=(u.searchParams.get("q")??"").toLowerCase(),station=u.searchParams.get("station")??"",table=u.searchParams.get("table")??"",op=u.searchParams.get("operation")??"";const w=[station&&"station=$station",table&&"table_name=$table",op&&"operation=$operation"].filter(Boolean).join(" AND ");const rows=(db.query(`SELECT * FROM events ${w?`WHERE ${w}`:""} ORDER BY id DESC LIMIT 2000`).all({$station:station,$table:table,$operation:op}) as any[]).map(r=>({...r,record:unpack(r.new_record)})).filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q)).slice(0,200);return page(`<h1>FAST Audit</h1><form><input name=q value="${esc(q)}" placeholder="Search voucher, transaction, payee"><input name=station value="${esc(station)}" placeholder=station><input name=table value="${esc(table)}" placeholder=table><input name=operation value="${esc(op)}" placeholder=operation><button>Search</button></form><table><tr><th>Detected</th><th>Station</th><th>Table</th><th>Voucher</th><th>Transaction</th><th>Operation</th></tr>${rows.map(r=>`<tr><td>${esc(fmt(r.detected_at))}</td><td>${esc(r.station)}</td><td>${esc(r.table_name)}</td><td>${esc(r.record.VOUCHER_NO)}</td><td><a href=${base}/event/${r.id}>${esc(r.record_key)}</a></td><td>${esc(r.operation)}</td></tr>`).join("")}</table>`)}
-function detail(id:number){const r:any=db.query("SELECT * FROM events WHERE id=?").get(id);if(!r)return "Not found";const a=unpack(r.old_record),b=unpack(r.new_record),keys=[...new Set([...Object.keys(a),...Object.keys(b)])].sort();return page(`<p><a href=${base}/>← events</a></p><h1>${esc(r.operation)} ${esc(r.table_name)} ${esc(r.record_key)}</h1><p>${esc(fmt(r.detected_at))} · ${esc(r.station)}</p><table><tr><th>Field</th><th>Old</th><th>New</th></tr>${keys.map(k=>{const c=JSON.stringify(a[k])!==JSON.stringify(b[k]);return `<tr class=${c?"changed":""}><td>${esc(k)}</td><td class=${c?"old":""}>${esc(a[k])}</td><td class=${c?"new":""}>${esc(b[k])}</td></tr>`}).join("")}</table>`)}
-Bun.serve({port:Number(process.env.PORT??3000),fetch(req){const u=new URL(req.url),path=u.pathname.startsWith(base+"/")?u.pathname.slice(base.length):u.pathname,body=path.startsWith("/event/")?detail(Number(path.split("/")[2])):list(u);return new Response(body,{headers:{"content-type":"text/html;charset=utf-8"}})}});console.log("FAST Audit listening on port "+(process.env.PORT??3000));
-let scanning=false;
-const scan=async()=>{if(scanning)return;scanning=true;try{const p=Bun.spawn(["python3","/app/scanner/audit_scan.py",process.env.FAST_ROOT??"/source",process.env.AUDIT_DB??"/data/audit.db"],{stdout:"inherit",stderr:"inherit"});const code=await p.exited;if(code)console.error(`Audit scan failed: ${code}`)}finally{scanning=false}};
-Bun.cron("* * * * *",()=>{const now=new Date(),day=now.getDay(),minutes=now.getHours()*60+now.getMinutes(),interval=Number(process.env.SCAN_MINUTES??10);if(day>=1&&day<=6&&now.getMinutes()%interval===0&&minutes>=450&&minutes<=1290)scan();});
-console.log("FAST Audit listening on port "+(process.env.PORT??3000));
+const base = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
+const unpack = (value: any) => value ? JSON.parse(inflateSync(value).toString()) : {};
+function list(url: URL) {
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const station = url.searchParams.get("station") ?? "";
+  const table = url.searchParams.get("table") ?? "";
+  const operation = url.searchParams.get("operation") ?? "";
+  const requestedPage = Math.max(1, Number(url.searchParams.get("page") ?? 1) || 1);
+  const pageSize = 25;
+  const conditions = ["1=1"], params: Record<string, string> = {};
+  if (station) { conditions.push("station = $station"); params.$station = station; }
+  if (table) { conditions.push("table_name = $table"); params.$table = table; }
+  if (operation) { conditions.push("operation = $operation"); params.$operation = operation; }
+  const candidates = db.query(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY id DESC LIMIT 10000`).all(params) as any[];
+  const needle = q.toLowerCase();
+  const matches = candidates
+    .map(row => ({ ...row, record: unpack(row.new_record) }))
+    .filter(row => !needle || JSON.stringify(row).toLowerCase().includes(needle));
+  const total = matches.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, pages);
+
+  return layout(listView({
+    base, q, station, table, operation,
+    rows: matches.slice((page - 1) * pageSize, page * pageSize),
+    page, pages, total,
+  }), base);
+}
+
+function detail(id: number) {
+  const row: any = db.query("SELECT * FROM events WHERE id = ?").get(id);
+  return layout(row
+    ? detailView({ base, row, oldRecord: unpack(row.old_record), newRecord: unpack(row.new_record) })
+    : "<main><h1>Event not found</h1></main>", base);
+}
+
+Bun.serve({
+  port: Number(process.env.PORT ?? 3000),
+  fetch(request) {
+    const url = new URL(request.url);
+    const path = url.pathname.startsWith(base + "/")
+      ? url.pathname.slice(base.length)
+      : url.pathname;
+
+    if (path === "/styles.css") {
+      return new Response(Bun.file(new URL("./styles.css", import.meta.url)), {
+        headers: { "content-type": "text/css" },
+      });
+    }
+
+    const body = path.startsWith("/event/")
+      ? detail(Number(path.split("/")[2]))
+      : list(url);
+    return new Response(body, {
+      headers: { "content-type": "text/html;charset=utf-8" },
+    });
+  },
+});
+
+console.log("FAST Audit listening on port " + (process.env.PORT ?? 3000));
+
+let scanning = false;
+const scan = async () => {
+  if (scanning) return;
+  scanning = true;
+  try {
+    const process = Bun.spawn([
+      "python3", "/app/scanner/audit_scan.py",
+      process.env.FAST_ROOT ?? "/source", process.env.AUDIT_DB ?? "/data/audit.db",
+    ], { stdout: "inherit", stderr: "inherit" });
+    const code = await process.exited;
+    if (code) console.error(`Audit scan failed: ${code}`);
+  } finally {
+    scanning = false;
+  }
+};
+
+Bun.cron("* * * * *", () => {
+  const now = new Date();
+  const day = now.getDay();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  const interval = Number(process.env.SCAN_MINUTES ?? 10);
+  if (day >= 1 && day <= 6 && now.getMinutes() % interval === 0 && minutes >= 450 && minutes <= 1290) {
+    scan();
+  }
+});
