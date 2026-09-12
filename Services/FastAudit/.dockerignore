@@ -1,0 +1,38 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime audit data
+data/
+
+# Git metadata and repository-local tooling
+.git/
+.gitignore
+.dockerignore
+.codex/
+.agents/
+
+# Dependencies and caches
+node_modules/
+.bun/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Build output and logs
+dist/
+build/
+coverage/
+*.log
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+

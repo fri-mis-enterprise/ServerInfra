@@ -15,9 +15,17 @@
 	handle /dtrcam/* {
 		reverse_proxy dtrcam:4173
 	}
+	
+
+	redir /fastaudit /fastaudit/ 308
+
+	handle /fastaudit/* {
+		reverse_proxy fast-audit:3000
+	}
 
 	handle {
 		reverse_proxy homarr:7575
 	}
+	
 
 }

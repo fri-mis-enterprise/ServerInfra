@@ -1,0 +1,20 @@
+services:
+  fast-audit:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FAST_ROOT: /source
+      AUDIT_DB: /data/audit.db
+      TZ: ${TZ:-UTC}
+      BASE_PATH: ${BASE_PATH:-/fastaudit}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - "${FAST_ROOT}:/source:ro"
+      - "${AUDIT_DATA:-./data}:/data"
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true
