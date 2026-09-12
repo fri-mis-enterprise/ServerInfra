@@ -9,4 +9,5 @@ IBS_Dumps
 .config
 IBS
 Services/homarr/appdata
+Services/FastAudit/data/
 .env*
