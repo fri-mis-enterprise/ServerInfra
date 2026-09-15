@@ -1,11 +1,23 @@
 import { Database } from "bun:sqlite";
-import { inflateSync } from "node:zlib";
+import { deflateSync, inflateSync } from "node:zlib";
 import { layout, listView, detailView } from "./views";
 
-const db = new Database(process.env.AUDIT_DB ?? "/data/audit.db", { readonly: true });
+const db = new Database(process.env.AUDIT_DB ?? "/data/audit.db");
 db.exec("PRAGMA busy_timeout=30000");
 const base = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
 const unpack = (value: any) => value ? JSON.parse(inflateSync(value).toString()) : {};
+const pack = (value: unknown) => deflateSync(JSON.stringify(value));
+const field = (body: any, key: string) => typeof body?.[key] === "string" ? body[key].trim().slice(0, 128) : "";
+async function open(request: Request) {
+  const text = await request.text();
+  let body: any = null;
+  try { body = request.headers.get("content-type")?.includes("application/json") ? JSON.parse(text || "null") : Object.fromEntries(new URLSearchParams(text)); } catch {}
+  const username = field(body, "username"), computer = field(body, "computer"), station = field(body, "station");
+  if (!username || !computer || !station) return new Response("username, computer, and station are required", { status: 400 });
+  const loggedAt = new Date().toISOString();
+  db.query("INSERT INTO events VALUES(NULL,?,?,?,?,?,?,?)").run(loggedAt, station, "SHORTCUT", `${username}@${computer}`, "OPEN", null, pack({ logged_at: loggedAt, username, computer, station }));
+  return Response.json({ ok: true });
+}
 function list(url: URL) {
   const q = (url.searchParams.get("q") ?? "").trim();
   const station = url.searchParams.get("station") ?? "";
@@ -42,7 +54,7 @@ function detail(id: number) {
 
 Bun.serve({
   port: Number(process.env.PORT ?? 3000),
-  fetch(request) {
+  async fetch(request) {
     const url = new URL(request.url);
     const path = url.pathname.startsWith(base + "/")
       ? url.pathname.slice(base.length)
@@ -53,6 +65,8 @@ Bun.serve({
         headers: { "content-type": "text/css" },
       });
     }
+
+    if (path === "/open") return request.method === "POST" ? open(request) : new Response(null, { status: 405 });
 
     const body = path.startsWith("/event/")
       ? detail(Number(path.split("/")[2]))
@@ -70,23 +84,22 @@ const scan = async () => {
   if (scanning) return;
   scanning = true;
   try {
-    const process = Bun.spawn([
+    const child = Bun.spawn([
       "python3", "/app/scanner/audit_scan.py",
       process.env.FAST_ROOT ?? "/source", process.env.AUDIT_DB ?? "/data/audit.db",
     ], { stdout: "inherit", stderr: "inherit" });
-    const code = await process.exited;
+    const code = await child.exited;
     if (code) console.error(`Audit scan failed: ${code}`);
   } finally {
     scanning = false;
   }
 };
 
-Bun.cron("* * * * *", () => {
+Bun.cron("*/5 * * * *", () => {
   const now = new Date();
   const day = now.getDay();
   const minutes = now.getHours() * 60 + now.getMinutes();
-  const interval = Number(process.env.SCAN_MINUTES ?? 10);
-  if (day >= 1 && day <= 6 && now.getMinutes() % interval === 0 && minutes >= 450 && minutes <= 1290) {
+  if (day >= 1 && day <= 6 && minutes >= 450 && minutes <= 1290) {
     scan();
   }
 });

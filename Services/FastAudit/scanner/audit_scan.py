@@ -26,11 +26,12 @@ def read(path, table, key):
                 print(f"Waiting for locked {path}: {error}", flush=True)
             time.sleep(2)
 def scan(root, db):
+    root = Path(root)
     con = sqlite3.connect(db, timeout=30)
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA busy_timeout=30000")
     con.executescript("CREATE TABLE IF NOT EXISTS state(station TEXT,table_name TEXT,record_key TEXT,digest TEXT,record_json BLOB,PRIMARY KEY(station,table_name,record_key)); CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,detected_at TEXT,station TEXT,table_name TEXT,record_key TEXT,operation TEXT,old_record BLOB,new_record BLOB);")
-    for station in Path(root).iterdir():
+    for station in root.iterdir():
         if not station.is_dir(): continue
         d = next((p for p in station.iterdir() if p.is_dir() and p.name.lower() == "dbase"), None)
         if not d: continue
@@ -47,5 +48,6 @@ def scan(root, db):
                     if op: con.execute("INSERT INTO events VALUES(NULL,?,?,?,?,?,?,?)", (now, station.name, table, key, op, pack(before[1]) if before else None, pack(after) if after else None))
             con.execute("DELETE FROM state WHERE station=? AND table_name=?", (station.name, table))
             con.executemany("INSERT INTO state VALUES(?,?,?,?,?)", [(station.name, table, k, digest(v), pack(v)) for k, v in current.items()])
+            con.commit()
     con.commit(); con.close()
 if __name__ == "__main__": scan(sys.argv[1], sys.argv[2])
