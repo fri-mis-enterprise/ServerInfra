@@ -26,3 +26,7 @@ fi
 alias rm='trash-put'
 
 eval "$(zoxide init zsh --cmd cd)"
+
+export EDITOR="nvim"
+export VISUAL="nvim"
+
