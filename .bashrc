@@ -12,3 +12,4 @@ PS1='[\u@\h \W]\$ '
 if [[ -z "$ZSH_VERSION" ]] && command -v zsh >/dev/null 2>&1; then
 	exec zsh
 fi
+. "$HOME/.cargo/env"

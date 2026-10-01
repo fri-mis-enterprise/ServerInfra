@@ -30,3 +30,6 @@ eval "$(zoxide init zsh --cmd cd)"
 export EDITOR="nvim"
 export VISUAL="nvim"
 
+# ls with Icons
+alias ls="eza --icons=auto --group-directories-first"
+alias la="ls -l"

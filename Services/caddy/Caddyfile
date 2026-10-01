@@ -23,6 +23,13 @@
 		reverse_proxy fast-audit:3000
 	}
 
+  redir /msap /msap/ 308
+
+  handle /msap/* {
+    reverse_proxy msap-web-1:8080
+  }
+
+
 	handle {
 		reverse_proxy homarr:7575
 	}
