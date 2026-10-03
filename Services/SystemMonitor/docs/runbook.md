@@ -4,11 +4,32 @@ The web process reads SQLite observations. The worker reads the eight configured
 
 ## Read-only startup
 
-1. Copy `.env.example` to `.env`, set a strong `ADMIN_PASSWORD` and `SECRET_KEY`, and restrict the file to the service operator. Set `ENABLE_WRITES=false` to disable DBF changes or `true` to enable dashboard openings and scheduled closures.
+1. Copy `.env.example` to `.env`, set a strong `SECRET_KEY`, and restrict the file to the service operator. `ADMIN_PASSWORD` optionally seeds the initial `mis` account when there are no users; registered users have hashed passwords in SQLite. Set `ENABLE_WRITES=false` to disable DBF changes or `true` to enable dashboard openings and scheduled closures.
 2. Ensure the host `data` directory is writable by UID 1000 and the service account can write the System3 share. This Compose configuration uses the local `/mnt/system3` share and the existing external `proxy` network.
 3. Run `docker compose up -d --build`. Check `docker compose ps`, then `docker compose logs worker` and `docker compose logs web`.
 4. Add `deploy/Caddyfile.fragment` inside the site's Caddy block before the fallback `handle`, adapt the upstream name if Compose created a different name, then validate and reload Caddy.
-5. Browse `/systemmonitor/` with HTTP Basic authentication (`mis` and `ADMIN_PASSWORD`). The Refresh health panel must show eight successful reads. Refresh errors and old observations are visible even when the web process stays healthy.
+5. Browse `/systemmonitor/` and use the sign-in page. Existing installations retain `mis` with the previous password. New users can create an account on the Register page. Registered users can view the dashboard/audit trail and perform enabled access changes. The Refresh health panel must show eight successful reads.
+
+## Accounts and audit history
+
+Login and registration are available at `/systemmonitor/login` and
+`/systemmonitor/register`. Sign-out uses a CSRF-protected POST. Account passwords
+are hashed with Werkzeug scrypt; signed sessions use the persistent `SECRET_KEY`,
+HTTP-only cookies, and SameSite Strict. Keep the same secret across restarts.
+
+The Audit trail page at `/systemmonitor/audit` shows openings, deadline changes,
+manual and automatic closures, failed actions, and **(Direct DCR Change)** events.
+It supports application, source, and record-month filters with 50 events per page.
+Dashboard actions capture the signed-in username and source IP. `TRUSTED_PROXY_HOST`
+defaults to `caddy`: only that resolved proxy's forwarded client IP is accepted.
+Restart the web service if the proxy is recreated with a new IP address.
+
+Direct DCR changes are logged when observed, including changes during the normal
+access window. Their timestamps are detection times, not exact DCR opening times;
+changes that happen entirely between polls cannot be reconstructed. Successful
+dashboard writes update the audit baseline to avoid duplicate DCR detections.
+Historical events stay available, but earlier dashboard events cannot be assigned
+retroactively to a personal account.
 
 The header's system clock shows server time in Asia/Manila, which is also used
 for deadlines. It advances every second and refreshes from `/systemmonitor/time`
@@ -20,7 +41,7 @@ The worker may initially show many externally opened months. An unscheduled prev
 
 ## Recovery and inspection
 
-The `data/monitor.sqlite3` database contains schedules, observations, events, and request identifiers. Back it up as an SQLite database while the processes run, or stop both processes and copy the SQLite file along with its WAL files. Never place it on the System3 share. A worker restart processes overdue schedules on its next tick. A failed closure stays listed and is retried. An early DCR closure removes the entry from the active list and remains in history. The status endpoint `/systemmonitor/status` returns the HTMX fragment for a manual read check.
+The `data/monitor.sqlite3` database contains schedules, observations, events, users, access baselines, and request identifiers. Back it up as an SQLite database while the processes run, or stop both processes and copy the SQLite file along with its WAL files. Never place it on the System3 share. A worker restart processes overdue schedules on its next tick. A failed closure stays listed and is retried. An early DCR closure removes the entry from the active list and remains in history. The status endpoint `/systemmonitor/status` returns the HTMX fragment for a manual read check.
 
 Removing an application from the configured list retires its pending, active, and failed schedules with an `excluded` event on the next worker cycle. Its old observations and events remain in SQLite, but it disappears from the dashboard and is no longer read or closed by the worker.
 
@@ -31,3 +52,5 @@ The application keeps both processes separate to prevent a web request from perf
 `systemmonitor/dbf_writer.py` opens the selected table with the Python `dbf` package, checks the schema and unique year/month and RECID, compares the current ALLOW value with the expected value, changes ALLOW, and verifies the non-ALLOW fields and resulting row. The DBF package does not coordinate writes with FoxPro record locks and does not update persistent CDX indexes. A local copy of DCR_Main's complete DBF/CDX/DBC companions was opened and closed with ALLOW changed; all other parsed fields remained unchanged, the CDX hash remained unchanged, and the copied files were restored. Verify the current table's CDX tags and behavior in a DCR test application after any data-layout change.
 
 The service serializes its own worker and dashboard updates using a local SQLite operation lock. It does not serialize with other FoxPro clients. Set `ENABLE_WRITES=false` to disable DBF mutations. The writer only accepts configured application paths and checks record identity and expected ALLOW before each update.
+
+Registration requires a single-use invitation created by `mis` from **Invitations**. Links expire after 48 hours and can be revoked before use. Share the generated link directly; raw invitation tokens are displayed only at creation and stored as SHA-256 hashes. New passwords require at least 4 characters. Existing accounts and passwords are retained.

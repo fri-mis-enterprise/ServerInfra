@@ -10,3 +10,9 @@ This directory is part of the shared ServerInfra repository. Commit the applicat
 source, tests, deployment files, documentation, and `.env.example`; the local
 `.gitignore` excludes real secrets, runtime data, DBF copies, caches, and generated
 files. Application source is needed because Docker Compose builds the image locally.
+
+Use the Login and Register pages for personal accounts. The existing `mis` login
+keeps its password during migration. Audit trail records dashboard usernames,
+source IPs, opening/closing timestamps, and detected **(Direct DCR Change)** events.
+
+Registration requires a single-use invitation created by `mis` from **Invitations**. Links expire after 48 hours and can be revoked before use. Share the generated link directly; raw invitation tokens are displayed only at creation and stored as SHA-256 hashes. New passwords require at least 4 characters. Existing accounts and passwords are retained.

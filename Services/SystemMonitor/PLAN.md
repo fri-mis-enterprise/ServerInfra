@@ -51,7 +51,7 @@ Use Asia/Manila for calendar rules and display. Store timestamps in UTC.
 - Previous-month access through the entire 3rd day is also normal.
 - Starting on the 4th, unscheduled previous-month access is unexpected.
 - Detect `ALLOW = T` outside the normal window without a dashboard schedule.
-  Label it **Detected outside dashboard**; the actual opener/time is unknown.
+  Label it **(Direct DCR Change)** and show the detection timestamp.
 - Save the first detection time and schedule closure at the next Manila midnight.
 - Refreshes and restarts must not extend that saved deadline.
 - An explicit dashboard close time can replace the detected midnight deadline.
@@ -105,10 +105,10 @@ that lock. This is the accepted Python-only write path.
 Completed and deployed:
 
 - Dashboard with individual month checkboxes, precise Manila close date/time,
-  health status, automatic partial refresh, and Basic authentication.
+  health status, automatic partial refresh, and personal account authentication.
 - Backend identity checks, SQLite connection cleanup, uncertain-write retention,
   duplicate record handling, and serialized schedule updates.
-- Twenty-two automated tests for selection, DBF writes including empty logical values, exact timestamp conversion, calendar
+- Twenty-seven automated tests for selection, DBF writes including empty logical values, exact timestamp conversion, calendar
   boundaries, restarts, replacements, failures, exclusions, and concurrency.
 - Docker Compose deployment, environment example, Caddy route, and runbook.
 - Live share verification on the eight monitored DBF files; monitoring remains
@@ -129,9 +129,11 @@ exceptions table, month-selection tiles and a live opening summary. Notification
 are dismissible; immediate closure has a confirmation dialog naming its target.
 The header shows the scheduling server's clock in Asia/Manila, updates every
 second and resynchronizes with the authenticated time endpoint every minute.
-The login username is `mis`; the existing password is retained.
+Login and registration use a persistent users table and hashed passwords. The existing `mis` account retains its password. Dashboard events record the signed-in username and source IP. The audit trail shows retained history and labels direct observations **(Direct DCR Change)** with detection timestamps; normal-window DCR openings are audited too.
 
 ## Collaboration note
 
 Tool action logs are not visible to the user. Send concise progress updates as
 files are completed and checks run, so ongoing work is visible without tool logs.
+
+Registration requires a single-use invitation created by `mis` from **Invitations**. Links expire after 48 hours and can be revoked before use. Share the generated link directly; raw invitation tokens are displayed only at creation and stored as SHA-256 hashes. New passwords require at least 4 characters. Existing accounts and passwords are retained.

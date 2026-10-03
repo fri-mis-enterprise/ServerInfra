@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Invitation required{% endblock %}
+{% block content %}
+<section class="panel auth-panel invitation-message"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Invitation required</h2><p class="auth-description">Ask MIS for a registration link. Each link can create one account and expires after 48 hours. Used, revoked, or expired links cannot be used again.</p><p class="auth-switch">Already have an account? <a href="{{ url_for('dashboard.login') }}">Sign in</a></p></section>
+{% endblock %}

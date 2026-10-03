@@ -22,7 +22,8 @@ class Settings:
         self.writes = os.getenv('ENABLE_WRITES', 'false').lower() == 'true'
         self.password = os.getenv('ADMIN_PASSWORD', '')
         self.secret = os.getenv('SECRET_KEY', '')
+        self.trusted_proxy_host = os.getenv('TRUSTED_PROXY_HOST', 'caddy')
         if self.interval < 5:
             raise ValueError('POLL_SECONDS must be at least 5')
-        if self.writes and not all((self.password, self.secret)):
-            raise ValueError('Writes require ADMIN_PASSWORD and SECRET_KEY')
+        if self.writes and not self.secret:
+            raise ValueError('Writes require SECRET_KEY')

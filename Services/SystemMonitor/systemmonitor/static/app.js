@@ -52,6 +52,26 @@
 
   const dialog = document.getElementById('close-dialog');
   document.addEventListener('click', event => {
+    const copy = event.target.closest('[data-copy-invitation]');
+    if (copy) {
+      const input = document.getElementById('invitation-link');
+      input.select();
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(input.value).then(() => { copy.textContent = 'Copied'; })
+          .catch(() => { copy.textContent = 'Selected — press Ctrl+C'; });
+      } else {
+        copy.textContent = 'Selected — press Ctrl+C';
+      }
+    }
+    const toggle = event.target.closest('[data-password-toggle]');
+    if (toggle) {
+      const input = document.getElementById(toggle.dataset.passwordToggle);
+      const showing = input.type === 'password';
+      input.type = showing ? 'text' : 'password';
+      toggle.textContent = showing ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-pressed', String(showing));
+      toggle.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+    }
     const dismiss = event.target.closest('.dismiss-notice');
     if (dismiss) dismiss.closest('.notice').remove();
     if (event.target.closest('[data-dialog-cancel]') && dialog) dialog.close();

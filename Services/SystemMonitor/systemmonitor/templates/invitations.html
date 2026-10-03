@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Invitations{% endblock %}
+{% block content %}
+<section class="panel auth-panel"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Registration invitations</h2><p class="auth-description">Create a link and share it with the person you want to invite. It creates one account, expires after 48 hours, and gives access to manage months and view the audit trail.</p>
+<form method="post" class="invitation-create"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="button button-primary" type="submit">Create invitation</button></form>
+{% if link %}<div class="invitation-link"><label for="invitation-link">Copy this link before leaving this page</label><input id="invitation-link" type="text" value="{{ link }}" readonly><button class="button button-secondary" type="button" data-copy-invitation>Copy link</button><p class="input-help">The link is only shown here once. Share it directly with the intended person.</p></div>{% endif %}
+</section>
+<section class="panel audit-panel invitation-history"><div class="table-wrap"><table><thead><tr><th>Created · Manila</th><th>Expires · Manila</th><th>Status</th><th>Action</th></tr></thead><tbody>
+{% for item in invitations %}<tr><td>{{ item.created_at|audit_time }}</td><td>{{ item.expires_at|audit_time }}</td><td>{% if item.used_by %}Used by @{{ item.used_by }}{% elif item.revoked_at %}Revoked{% elif item.expires_at <= now %}Expired{% else %}Ready to use{% endif %}</td><td>{% if not item.used_by and not item.revoked_at and item.expires_at > now %}<form method="post" action="{{ url_for('dashboard.revoke_invitation', invitation_id=item.id) }}"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="button button-secondary" type="submit">Revoke</button></form>{% else %}—{% endif %}</td></tr>{% else %}<tr><td colspan="4">No invitations yet.</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

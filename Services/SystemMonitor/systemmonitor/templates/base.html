@@ -16,14 +16,18 @@
   <div class="topbar-inner">
     <a class="brand" href="{{ url_for('dashboard.index') }}"><span class="brand-mark">{{ icon('shield') }}</span><span>DCR <span class="brand-light">Access</span><small>MONTH ACCESS MANAGEMENT</small></span></a>
     <div class="topbar-tools">
+      {% if current_user %}
       <div class="system-clock" data-server-time="{{ server_time }}" data-time-url="{{ url_for('dashboard.server_clock') }}">
         {{ icon('clock') }}<div><span class="clock-label">System time · Manila</span><time id="system-time" datetime="{{ server_time }}">{{ server_time|manila }}</time><span id="clock-status" class="clock-note">All deadlines follow this clock</span></div>
       </div>
-      <span class="account"><span class="avatar">M</span><span>mis<small>Administrator</small></span></span>
+      <span class="account"><span class="avatar">{{ current_user.display_name[0]|upper }}</span><span>{{ current_user.display_name }}<small>@{{ current_user.username }}</small></span></span>
+      <form class="logout-form" method="post" action="{{ url_for('dashboard.logout') }}"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="logout-button" type="submit">Sign out</button></form>
+      {% else %}<span class="signed-out-label">Internal operations · Account access</span>{% endif %}
     </div>
   </div>
 </header>
 <main id="main" class="page">
+  {% if current_user %}<nav class="page-nav" aria-label="Main navigation"><a class="{{ 'selected' if request.endpoint in ['dashboard.index', 'dashboard.form'] else '' }}" href="{{ url_for('dashboard.index') }}">{{ icon('grid') }}Overview</a><a class="{{ 'selected' if request.endpoint == 'dashboard.audit' else '' }}" href="{{ url_for('dashboard.audit') }}">{{ icon('clock') }}Audit trail</a>{% if current_user.username == 'mis' %}<a class="{{ 'selected' if request.endpoint == 'dashboard.invitations' else '' }}" href="{{ url_for('dashboard.invitations') }}">{{ icon('shield') }}Invitations</a>{% endif %}</nav>{% endif %}
   <div class="notifications" aria-live="polite">
   {% for category, message in get_flashed_messages(with_categories=true) %}
     <div class="notice notice-{{ 'error' if category == 'error' else 'warning' if category == 'warning' else 'success' }}" role="{{ 'alert' if category == 'error' else 'status' }}">
@@ -32,9 +36,9 @@
   {% endfor %}
   </div>
   {% block content %}{% endblock %}
-  <footer class="page-footer"><span>DCR Access · Internal operations</span><span>{{ 'Access changes enabled' if writes else 'Read-only mode' }} <span class="footer-dot">·</span> Asia/Manila (UTC+08:00)</span></footer>
+  <footer class="page-footer"><span>DCR Access · Internal operations</span><span>{{ ('Access changes enabled' if writes else 'Read-only mode') if current_user else 'Personal account access' }} <span class="footer-dot">·</span> Asia/Manila (UTC+08:00)</span></footer>
 </main>
-{% if writes %}
+{% if writes and current_user %}
 <dialog id="close-dialog" aria-labelledby="close-title" aria-describedby="close-description">
   <div class="dialog-content"><span class="dialog-icon">{{ icon('lock') }}</span><h2 id="close-title">Close month access?</h2><p id="close-description">Access to <strong id="close-month-name"></strong> in <strong id="close-app-name"></strong> will close immediately. You can open it again from Open months.</p>
   <form id="confirm-close-form" method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><div class="dialog-actions"><button class="button button-secondary" type="button" data-dialog-cancel>Keep open</button><button class="button button-danger" type="submit">{{ icon('lock') }}Close now</button></div></form></div>

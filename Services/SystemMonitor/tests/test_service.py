@@ -230,3 +230,40 @@ def test_explicit_open_fills_empty_allow_true(rig):
     assert writer.calls == [(10, True)]
     assert 'allowed' in results[0]
     assert service.store.active()[0]['state'] == 'active'
+
+
+def test_audit_dashboard_open_is_not_detected_as_direct_dcr(rig):
+    service, source, writer = rig([row(10, None)])
+    now = when(3)
+    service.tick(now)
+    service.open_months('Test', 2026, [10], close_at(now, 72), 'audited-open', now,
+                        actor={'username': 'alice', 'client_ip': '192.168.0.25'})
+    service.tick(now + timedelta(seconds=30))
+    events = service.store.audit()['entries']
+    opened = [e for e in events if e['action'] == 'opened']
+    assert len(opened) == 1
+    assert opened[0]['actor'] == 'alice'
+    assert opened[0]['client_ip'] == '192.168.0.25'
+    assert not any(e['action'].startswith('dcr_') for e in events)
+    source.rows[0]['allow'] = False
+    service.tick(now + timedelta(seconds=60))
+    source.rows[0]['allow'] = True
+    service.tick(now + timedelta(seconds=90))
+    service.tick(now + timedelta(seconds=120))
+    events = service.store.audit(origin='dcr')['entries']
+    assert [e['action'] for e in events].count('dcr_open_detected') == 1
+    assert all(e['actor'] == '(Direct DCR Change)' for e in events)
+
+
+def test_audit_uncertain_dashboard_open_is_not_misattributed(rig):
+    service, source, writer = rig([row(10)])
+    now = when(3)
+    service.tick(now)
+    writer.failure = 'response lost'
+    writer.commit_before_failure = True
+    service.open_months('Test', 2026, [10], close_at(now, 72), 'uncertain-audit', now,
+                        actor={'username': 'alice'})
+    service.tick(now + timedelta(seconds=30))
+    events = service.store.audit()['entries']
+    assert any(e['action'] == 'opening_observed' for e in events)
+    assert not any(e['action'].startswith('dcr_') for e in events)
