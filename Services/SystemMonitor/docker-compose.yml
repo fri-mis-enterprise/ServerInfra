@@ -28,6 +28,17 @@ services:
       - ${MONITOR_DATA:-./data}:/data
     networks:
       - proxy
+  fast-worker:
+    image: systemmonitor:local
+    restart: unless-stopped
+    command: ["python", "-m", "systemmonitor.fast_worker"]
+    env_file: .env
+    environment:
+      FAST_ROOT: /fast-source
+      MONITOR_DATA: /data
+    volumes:
+      - ${FAST_ROOT:-/mnt/fast_system}:/fast-source:${FAST_VOLUME_MODE:-ro}
+      - ${MONITOR_DATA:-./data}:/data
 networks:
   proxy:
     external: true

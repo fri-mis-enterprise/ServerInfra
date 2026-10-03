@@ -9,5 +9,5 @@
   <p class="auth-description">
     {$page.error?.message || "This page could not be loaded."}
   </p>
-  <p class="auth-switch"><a href={`${base}/`}>Return to overview</a></p>
+  <p class="auth-switch"><a href={`${base}/`}>Return to systems</a></p>
 </section>

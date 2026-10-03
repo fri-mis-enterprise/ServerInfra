@@ -169,7 +169,7 @@ def test_svelte_shell_deep_links_assets_and_json_errors(rig, tmp_path):
     (frontend / 'index.html').write_text('<html>SvelteKit interface</html>')
     (asset_dir / 'example.js').write_text('console.log("asset")')
     client = create_app(settings(frontend=frontend), service).test_client()
-    for path in ('/', '/login', '/register?invitation=test', '/open', '/audit?month=2026-09', '/invitations'):
+    for path in ('/', '/dcr', '/fast', '/login', '/register?invitation=test', '/open', '/audit?month=2026-09', '/invitations'):
         result = client.get('/systemmonitor' + path)
         assert result.status_code == 200
         assert b'SvelteKit interface' in result.data

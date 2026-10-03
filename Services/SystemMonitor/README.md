@@ -1,6 +1,29 @@
 # SystemMonitor
 
-Internal DCR month access dashboard. [PLAN.md](PLAN.md) defines the intended behavior; [docs/runbook.md](docs/runbook.md) covers deployment and DBF operation.
+Internal system monitoring and operations workspace. The Systems home page leads
+to DCR access management at `/systemmonitor/dcr` and FAST station
+period monitoring at `/systemmonitor/fast`. [PLAN.md](PLAN.md) defines DCR behavior;
+[docs/runbook.md](docs/runbook.md) covers deployment and DBF operation.
+
+FAST monthly-period access is available as a read-only inspection command:
+`.venv/bin/python -m systemmonitor.fast --year 2026 --month 9`.
+It reads direct station `DBASE/monthly.dbf` files under `/mnt/fast_system`
+(override with `FAST_ROOT` or `--root`); use `--station FASTPA2` for one station.
+See the runbook for status meanings and the reference programs.
+The FAST dashboard scans only on demand through **Scan** or **Scan all
+stations**. A popup shows progress while the worker checks stations. Saved
+results retain their verification timestamps. Its worker does not scan
+periodically or close periods automatically. Manual **Open** marks existing
+records for one station and month as deleted; **Close** recalls those records.
+It cannot generate missing monthly records. Controls are disabled by default.
+To enable them, set `FAST_ENABLE_WRITES=true` and `FAST_VOLUME_MODE=rw` in
+`.env`, and provide a writable host FAST mount. The web service never mounts
+the FAST share. An interrupted change stays in recovery until an operator
+chooses **Resume and verify**. Saved DBF/CDX backups remain under
+`MONITOR_DATA/fast-actions/` for audit and recovery.
+On this host, run `python3 scripts/mount_fast_rw.py` after a reboot, then
+`docker compose up -d --force-recreate fast-worker`; the separate FAST mount
+is not in `/etc/fstab`.
 
 The interface lives in `frontend/` and uses SvelteKit with Svelte components and routes. Python Flask owns the JSON API, session authentication, audit records, and DBF access. The independent Python worker owns polling and scheduled closures. SvelteKit builds a static browser application; Flask serves its compiled files and the API on the same origin. No Node/Bun process is required at runtime.
 

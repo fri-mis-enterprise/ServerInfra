@@ -55,7 +55,7 @@
   }
 </script>
 
-<svelte:head><title>Invitations · DCR Access</title></svelte:head>
+<svelte:head><title>Invitations · System Monitor</title></svelte:head>
 {#if $auth.user?.username !== "mis"}<section class="panel auth-panel">
     <h2>MIS access required</h2>
     <p class="auth-description">

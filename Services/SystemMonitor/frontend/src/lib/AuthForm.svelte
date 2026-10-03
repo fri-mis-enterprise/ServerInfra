@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head
-  ><title>{registering ? "Create an account" : "Sign in"} · DCR Access</title
+  ><title>{registering ? "Create an account" : "Sign in"} · System Monitor</title
   ></svelte:head
 >
 {#if registering && checking}<p class="refresh-note" role="status">
@@ -83,17 +83,17 @@
   <div class="auth-layout">
     <div class="auth-intro">
       <span class="auth-symbol"><Icon name="shield" /></span>
-      <p class="eyebrow">DCR ACCESS MANAGEMENT</p>
-      <h1>Accountable access.<br />Clear history.</h1>
+      <p class="eyebrow">SYSTEM MONITOR</p>
+      <h1>System operations.<br />One workspace.</h1>
       <p>
-        Manage temporary month access with your own account. Every dashboard
+        Monitor systems and manage available controls with your own account. Every dashboard
         action is linked to the person who made it.
       </p>
       <div class="auth-feature">
-        <Icon name="calendar" />Precise opening and closing schedules
+        <Icon name="grid" />Dedicated workspaces for each system
       </div>
       <div class="auth-feature">
-        <Icon name="clock" />An audit trail of access changes
+        <Icon name="clock" />Clear history of operational changes
       </div>
       <div class="auth-feature">
         <Icon name="shield" />Your own secure sign-in
@@ -103,8 +103,8 @@
       <h2>{registering ? "Create your account" : "Welcome back"}</h2>
       <p class="auth-description">
         {registering
-          ? "Your invitation gives you access to manage months with your own account."
-          : "Sign in to manage access and view the audit trail."}
+          ? "Your invitation gives you access to System Monitor with your own account."
+          : "Sign in to view systems and manage available operations."}
       </p>
       {#if error}<p class="field-error" role="alert">{error}</p>{/if}
       <form on:submit|preventDefault={submit} class="auth-form">

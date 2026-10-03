@@ -27,6 +27,22 @@ class Store:
                     app TEXT PRIMARY KEY, checked_at TEXT NOT NULL,
                     successful_at TEXT, rows_json TEXT NOT NULL DEFAULT '[]', error TEXT
                 );
+                CREATE TABLE IF NOT EXISTS fast_observations (
+                    station TEXT PRIMARY KEY, checked_at TEXT NOT NULL,
+                    successful_at TEXT, summary_json TEXT, error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS fast_scan (
+                    id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL,
+                    started_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    finished_at TEXT, total INTEGER NOT NULL, processed INTEGER NOT NULL,
+                    error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS fast_actions (
+                    id TEXT PRIMARY KEY, station TEXT NOT NULL, period TEXT NOT NULL,
+                    action TEXT NOT NULL, actor TEXT NOT NULL, state TEXT NOT NULL,
+                    requested_at TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
+                    records INTEGER, changed INTEGER
+                );
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY, schedule_id INTEGER, at TEXT NOT NULL,
                     action TEXT NOT NULL, detail TEXT NOT NULL
@@ -49,6 +65,12 @@ class Store:
                     PRIMARY KEY(app,recid,record_date)
                 );
             ''')
+            fast_columns = {r['name'] for r in db.execute('PRAGMA table_info(fast_scan)')}
+            for name in ('station', 'requested_by', 'requested_at'):
+                if name not in fast_columns:
+                    db.execute(f'ALTER TABLE fast_scan ADD COLUMN {name} TEXT')
+            if 'failed' not in fast_columns:
+                db.execute('ALTER TABLE fast_scan ADD COLUMN failed INTEGER NOT NULL DEFAULT 0')
             columns = {r['name'] for r in db.execute('PRAGMA table_info(events)')}
             for name, kind in (('actor', 'TEXT'), ('client_ip', 'TEXT'), ('app', 'TEXT'),
                                ('year', 'INTEGER'), ('month', 'INTEGER'), ('recid', 'INTEGER'),
@@ -165,6 +187,144 @@ class Store:
                 db.execute('''INSERT INTO observations(app,checked_at,successful_at,rows_json,error) VALUES(?,?,?,?,NULL)
                     ON CONFLICT(app) DO UPDATE SET checked_at=excluded.checked_at,successful_at=excluded.successful_at,
                     rows_json=excluded.rows_json,error=NULL''', (app, now, now, json.dumps(rows)))
+
+    def fast_observations(self):
+        with self.connect() as db:
+            rows = [dict(r) for r in db.execute('SELECT * FROM fast_observations ORDER BY station')]
+        for row in rows:
+            row['summary'] = json.loads(row.pop('summary_json') or 'null')
+        return rows
+
+    def fast_prepare(self, stations, now):
+        with self.connect() as db:
+            db.executemany('INSERT OR IGNORE INTO fast_observations(station,checked_at) VALUES(?,?)',
+                           [(station, now) for station in stations])
+
+    def fast_observe(self, station, now, summary=None, error=None):
+        with self.connect() as db:
+            if error:
+                db.execute('''INSERT INTO fast_observations(station,checked_at,error) VALUES(?,?,?)
+                    ON CONFLICT(station) DO UPDATE SET checked_at=excluded.checked_at,error=excluded.error''',
+                           (station, now, error))
+            else:
+                db.execute('''INSERT INTO fast_observations(station,checked_at,successful_at,summary_json)
+                    VALUES(?,?,?,?) ON CONFLICT(station) DO UPDATE SET checked_at=excluded.checked_at,
+                    successful_at=excluded.successful_at,summary_json=excluded.summary_json,error=NULL''',
+                           (station, now, now, json.dumps(summary)))
+
+    def fast_scan(self):
+        with self.connect() as db:
+            row = db.execute('SELECT * FROM fast_scan WHERE id=1').fetchone()
+            return dict(row) if row else None
+
+    def fast_start(self, total, now):
+        with self.connect() as db:
+            db.execute('''INSERT INTO fast_scan(id,state,started_at,updated_at,finished_at,total,processed,error)
+                VALUES(1,'scanning',?,?,NULL,?,0,NULL)
+                ON CONFLICT(id) DO UPDATE SET state='scanning',started_at=excluded.started_at,
+                updated_at=excluded.updated_at,finished_at=NULL,total=excluded.total,processed=0,failed=0,error=NULL''',
+                       (now, now, total))
+
+    def request_fast_scan(self, station, now, username):
+        """One durable request at a time; repeated requests for the same scope coalesce."""
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute("SELECT 1 FROM fast_actions WHERE state IN ('queued','running','needs_recovery')").fetchone():
+                raise ValueError('Finish or resume the current FAST operation before scanning.')
+            current = db.execute('SELECT * FROM fast_scan WHERE id=1').fetchone()
+            if current and current['state'] in ('queued', 'scanning'):
+                if current['station'] != station:
+                    raise ValueError('A FAST scan is already queued or running. Wait for it to finish.')
+                return dict(current)
+            db.execute('''INSERT INTO fast_scan(id,state,started_at,updated_at,total,processed,
+                station,requested_by,requested_at) VALUES(1,'queued',?,?,0,0,?,?,?)
+                ON CONFLICT(id) DO UPDATE SET state='queued',started_at=excluded.started_at,
+                updated_at=excluded.updated_at,finished_at=NULL,total=0,processed=0,failed=0,error=NULL,
+                station=excluded.station,requested_by=excluded.requested_by,requested_at=excluded.requested_at''',
+                       (now, now, station, username, now))
+            return dict(db.execute('SELECT * FROM fast_scan WHERE id=1').fetchone())
+
+    def claim_fast_scan(self, now):
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            current = db.execute("SELECT * FROM fast_scan WHERE id=1 AND state='queued'").fetchone()
+            if current is None:
+                return None
+            db.execute("UPDATE fast_scan SET state='scanning',started_at=?,updated_at=? WHERE id=1", (now, now))
+            return dict(db.execute('SELECT * FROM fast_scan WHERE id=1').fetchone())
+
+    def interrupt_fast_scan(self, now):
+        with self.connect() as db:
+            db.execute("""UPDATE fast_scan SET state='interrupted',updated_at=?,finished_at=?,
+                error='Worker stopped before the scan finished. Request another scan.'
+                WHERE id=1 AND state='scanning'""", (now, now))
+
+    def fast_progress(self, now, failed=False):
+        with self.connect() as db:
+            db.execute('UPDATE fast_scan SET processed=processed+1,failed=failed+?,updated_at=? WHERE id=1', (int(failed), now))
+
+    def fast_finish(self, now, error=None, state='completed'):
+        with self.connect() as db:
+            db.execute('UPDATE fast_scan SET state=?,updated_at=?,finished_at=?,error=? WHERE id=1',
+                       (state, now, now, error))
+
+    def fast_actions(self):
+        with self.connect() as db:
+            return [dict(r) for r in db.execute('SELECT * FROM fast_actions ORDER BY rowid DESC LIMIT 20')]
+
+    def request_fast_action(self, job_id, station, period, action, actor, now):
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            existing = db.execute('SELECT * FROM fast_actions WHERE id=?', (job_id,)).fetchone()
+            if existing:
+                if (existing['station'], existing['period'], existing['action'], existing['actor']) != (station, period, action, actor):
+                    raise ValueError('Request identifier is already used for another operation.')
+                return dict(existing)
+            if db.execute("SELECT 1 FROM fast_actions WHERE state IN ('queued','running','needs_recovery')").fetchone():
+                raise ValueError('Finish or resume the current FAST operation first.')
+            scan = db.execute("SELECT 1 FROM fast_scan WHERE state IN ('queued','scanning')").fetchone()
+            if scan:
+                raise ValueError('Wait for the FAST scan to finish before changing a period.')
+            db.execute('INSERT INTO fast_actions(id,station,period,action,actor,state,requested_at,updated_at) VALUES(?,?,?,?,?,\'queued\',?,?)',
+                       (job_id, station, period, action, actor, now, now))
+            return dict(db.execute('SELECT * FROM fast_actions WHERE id=?', (job_id,)).fetchone())
+
+    def resume_fast_action(self, job_id, now):
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM fast_actions WHERE id=?', (job_id,)).fetchone()
+            if not row or row['state'] != 'needs_recovery':
+                raise ValueError('Choose an operation that needs recovery.')
+            if db.execute("SELECT 1 FROM fast_scan WHERE state IN ('queued','scanning')").fetchone():
+                raise ValueError('Wait for the FAST scan to finish before resuming recovery.')
+            db.execute("UPDATE fast_actions SET state='queued',updated_at=?,error=NULL WHERE id=?", (now, job_id))
+            return dict(db.execute('SELECT * FROM fast_actions WHERE id=?', (job_id,)).fetchone())
+
+    def claim_fast_action(self, now):
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute("SELECT * FROM fast_actions WHERE state='queued' LIMIT 1").fetchone()
+            if row is None:
+                return None
+            db.execute("UPDATE fast_actions SET state='running',updated_at=? WHERE id=?", (now, row['id']))
+            return dict(db.execute('SELECT * FROM fast_actions WHERE id=?', (row['id'],)).fetchone())
+
+    def fast_action_state(self, job_id, state, now, error=None, records=None, changed=None):
+        with self.connect() as db:
+            db.execute('UPDATE fast_actions SET state=?,updated_at=?,error=?,records=COALESCE(?,records),changed=COALESCE(?,changed) WHERE id=?',
+                       (state, now, error, records, changed, job_id))
+
+    def interrupt_fast_actions(self, now):
+        with self.connect() as db:
+            db.execute("UPDATE fast_actions SET state='needs_recovery',updated_at=?,error='Worker stopped. Resume manually to verify and finish.' WHERE state='running'", (now,))
+
+    def complete_fast_action(self, job, summary, records, changed, now):
+        # Publish the verified cache and audit outcome in the same transaction.
+        with self.connect() as db:
+            db.execute('UPDATE fast_observations SET checked_at=?,successful_at=?,summary_json=?,error=NULL WHERE station=?',
+                       (now, now, json.dumps(summary), job['station']))
+            db.execute("UPDATE fast_actions SET state='completed',updated_at=?,error=NULL,records=?,changed=? WHERE id=?",
+                       (now, records, changed, job['id']))
 
     def event(self, db, schedule_id, now, action, detail='', actor=None, record=None):
         actor = actor or {}

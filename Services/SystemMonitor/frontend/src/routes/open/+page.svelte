@@ -41,7 +41,7 @@
         request_id: options.request_id,
       });
       result.messages.forEach((item) => notice(item.text, item.kind));
-      await goto(`${base}/`);
+      await goto(`${base}/dcr`);
     } catch (e) {
       error = e.message;
     } finally {
@@ -50,11 +50,11 @@
   }
 </script>
 
-<svelte:head><title>Open months · DCR Access</title></svelte:head>
-<a class="back-link" href={`${base}/`}><Icon name="back" />Back to dashboard</a>
+<svelte:head><title>Open DCR months · System Monitor</title></svelte:head>
+<a class="back-link" href={`${base}/dcr`}><Icon name="back" />Back to DCR access</a>
 <div class="page-heading">
   <div>
-    <p class="eyebrow">TEMPORARY ACCESS</p>
+    <p class="eyebrow">DCR SYSTEM · TEMPORARY ACCESS</p>
     <h1>Open months</h1>
     <p class="page-description">
       Choose the months you need and set when access should close.
@@ -165,7 +165,7 @@
           </p>
         </div>
         <div class="form-actions">
-          <a class="button button-secondary" href={`${base}/`}>Cancel</a><button
+          <a class="button button-secondary" href={`${base}/dcr`}>Cancel</a><button
             class="button button-primary"
             type="submit"
             ><Icon name="plus" />{busy
@@ -216,7 +216,7 @@
         <h3>Access stays on schedule</h3>
         <p>
           The selected months open immediately and close automatically at the
-          deadline. You can also close them early from the dashboard.
+          deadline. You can also close them early from DCR access.
         </p>
       </div>
     </aside>

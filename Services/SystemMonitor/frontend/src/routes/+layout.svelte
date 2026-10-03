@@ -44,18 +44,18 @@
 </script>
 
 <svelte:head
-  ><title>DCR Access · Month management</title><meta
+  ><title>System Monitor · Internal operations</title><meta
     name="description"
-    content="Internal DCR month access management"
+    content="Internal system monitoring and operations management"
   /></svelte:head
 >
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href={`${base}/`}
-      ><span class="brand-mark"><Icon name="shield" /></span><span
-        >DCR <span class="brand-light">Access</span><small
-          >MONTH ACCESS MANAGEMENT</small
+      ><span class="brand-mark"><Icon name="grid" /></span><span
+        >System <span class="brand-light">Monitor</span><small
+          >INTERNAL OPERATIONS</small
         ></span
       ></a
     >
@@ -76,10 +76,14 @@
 </header>
 <main id="main" class="page">
   {#if $auth.user}<nav class="page-nav" aria-label="Main navigation">
-      <a class:selected={["/", "/open"].includes(path)} href={`${base}/`}
-        ><Icon name="grid" />Overview</a
+      <a class:selected={path === "/"} aria-current={path === "/" ? "page" : undefined} href={`${base}/`}
+        ><Icon name="grid" />Systems</a
+      ><a class:selected={["/dcr", "/open"].includes(path)} aria-current={path === "/dcr" ? "page" : undefined} href={`${base}/dcr`}
+        ><Icon name="shield" />DCR access</a
+      ><a class:selected={path === "/fast"} aria-current={path === "/fast" ? "page" : undefined} href={`${base}/fast`}
+        ><Icon name="calendar" />FAST periods</a
       ><a class:selected={path === "/audit"} href={`${base}/audit`}
-        ><Icon name="clock" />Audit trail</a
+        ><Icon name="clock" />DCR audit trail</a
       >{#if $auth.user.username === "mis"}<a
           class:selected={path === "/invitations"}
           href={`${base}/invitations`}><Icon name="shield" />Invitations</a
@@ -117,18 +121,18 @@
         >Try again</button
       >
     </section>{:else if !ready}<p class="refresh-note" role="status">
-      Connecting to DCR Access…
+      Connecting to System Monitor…
     </p>{:else if $auth.user || publicPage}<slot />{:else}<p
       class="refresh-note"
     >
       Opening sign-in…
     </p>{/if}
   <footer class="page-footer">
-    <span>DCR Access · Internal operations</span><span
+    <span>System Monitor · Internal operations</span><span
       >{$auth.user
         ? $auth.writes
-          ? "Access changes enabled"
-          : "Read-only mode"
+          ? "DCR access changes enabled"
+          : "DCR monitoring only"
         : "Personal account access"} <span class="footer-dot">·</span> Asia/Manila
       (UTC+08:00)</span
     >

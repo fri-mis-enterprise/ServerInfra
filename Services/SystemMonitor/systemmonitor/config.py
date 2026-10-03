@@ -20,11 +20,13 @@ class Settings:
         self.frontend = Path(os.getenv('FRONTEND_BUILD', str(Path(__file__).parent / 'frontend')))
         self.base = os.getenv('BASE_PATH', '/systemmonitor').rstrip('/')
         self.interval = int(os.getenv('POLL_SECONDS', '30'))
+        self.fast_root = Path(os.getenv('FAST_ROOT', '/mnt/fast_system'))
         self.writes = os.getenv('ENABLE_WRITES', 'false').lower() == 'true'
+        self.fast_writes = os.getenv('FAST_ENABLE_WRITES', 'false').lower() == 'true'
         self.password = os.getenv('ADMIN_PASSWORD', '')
         self.secret = os.getenv('SECRET_KEY', '')
         self.trusted_proxy_host = os.getenv('TRUSTED_PROXY_HOST', 'caddy')
         if self.interval < 5:
             raise ValueError('POLL_SECONDS must be at least 5')
-        if self.writes and not self.secret:
+        if (self.writes or self.fast_writes) and not self.secret:
             raise ValueError('Writes require SECRET_KEY')

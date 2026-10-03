@@ -16,6 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .config import APPS, Settings
 from .dbf import Source
 from .dbf_writer import DbfWriter
+from .fast import empty_period
 from .service import MANILA, Service, normal_access, stamp, utcnow
 from .store import Store
 
@@ -77,7 +78,8 @@ def create_app(settings=None, service=None):
 
     def session_data():
         return dict(user=service.store.user(session.get('user_id')), csrf=session['csrf'],
-                    writes=settings.writes, server_time=utcnow().isoformat(), timezone='Asia/Manila')
+                    writes=settings.writes, fast_writes=getattr(settings, 'fast_writes', False),
+                    server_time=utcnow().isoformat(), timezone='Asia/Manila')
 
     def sign_in(user_id):
         session.clear()
@@ -207,6 +209,86 @@ def create_app(settings=None, service=None):
         return jsonify(active=active, untracked=untracked, health=health,
                        unhealthy=any(h['stale'] or h['error'] for h in health),
                        writes=settings.writes, interval=settings.interval)
+
+    @bp.get('/fast/status')
+    def fast_status():
+        now = utcnow()
+        local = now.astimezone(MANILA)
+        default = (local.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
+        period = request.args.get('period', default)
+        if not re.fullmatch(r'(19|20|21)[0-9]{2}-(0[1-9]|1[0-2])', period):
+            abort(400, 'Choose a valid FAST period.')
+        scan = service.store.fast_scan()
+        actions = service.store.fast_actions()
+        if scan:
+            scan['stalled'] = (scan['state'] == 'scanning' and
+                               now - datetime.fromisoformat(scan['updated_at']) > timedelta(minutes=15))
+        stations = []
+        for observation in service.store.fast_observations():
+            successful = observation['successful_at']
+            summary = observation['summary']
+            cached = summary['periods'].get(period, empty_period(period)) if summary else None
+            pending = any(job['station'] == observation['station'] and job['period'] == period
+                          and job['state'] in ('queued', 'running', 'needs_recovery') for job in actions)
+            verified = cached is not None and not observation['error'] and not pending
+            stations.append(dict(station=observation['station'], checked_at=observation['checked_at'],
+                                 successful_at=successful, error=observation['error'],
+                                 generation_excluded=observation['station'].casefold() == 'fastmnv',
+                                 status=cached['status'] if verified else 'unverified',
+                                 cached_status=cached['status'] if cached else None,
+                                 active=cached['active'] if cached else None,
+                                 deleted=cached['deleted'] if cached else None,
+                                 other_days=cached['other_days'] if cached else None))
+        return jsonify(period=period, default_period=default,
+                       read_only=not getattr(settings, 'fast_writes', False),
+                       scan_mode='on_demand', stations=stations, scan=scan,
+                       actions=actions)
+
+    @bp.post('/fast/scan')
+    def request_fast_scan():
+        data = payload()
+        station = data.get('station')
+        if station is not None:
+            if not isinstance(station, str) or station not in {
+                    row['station'] for row in service.store.fast_observations()}:
+                abort(400, 'Choose a known station, or scan all stations for initial discovery.')
+        try:
+            scan = service.store.request_fast_scan(station, stamp(utcnow()), g.current_user['username'])
+        except ValueError as error:
+            abort(409, str(error))
+        return jsonify(scan=scan, message='Station scan requested.' if station else 'All-station scan requested.'), 202
+
+    @bp.post('/fast/action')
+    def request_fast_action():
+        if not getattr(settings, 'fast_writes', False):
+            abort(403, 'FAST period controls are disabled.')
+        data = payload()
+        station, period, action, job_id = (data.get(key) for key in ('station', 'period', 'action', 'request_id'))
+        if not isinstance(station, str) or station not in {
+                row['station'] for row in service.store.fast_observations()}:
+            abort(400, 'Choose a known station.')
+        if not isinstance(period, str) or not re.fullmatch(r'(19|20|21)[0-9]{2}-(0[1-9]|1[0-2])', period):
+            abort(400, 'Choose a valid FAST period.')
+        if action not in ('open', 'close'):
+            abort(400, 'Choose opening or closing.')
+        if not isinstance(job_id, str) or not re.fullmatch(r'[a-f0-9]{32}', job_id):
+            abort(400, 'Operation identifier is invalid.')
+        try:
+            job = service.store.request_fast_action(job_id, station, period, action,
+                                                    g.current_user['username'], stamp(utcnow()))
+        except ValueError as error:
+            abort(409, str(error))
+        return jsonify(action=job, message='FAST period operation queued.'), 202
+
+    @bp.post('/fast/action/<job_id>/resume')
+    def resume_fast_action(job_id):
+        if not getattr(settings, 'fast_writes', False):
+            abort(403, 'FAST period controls are disabled.')
+        try:
+            job = service.store.resume_fast_action(job_id, stamp(utcnow()))
+        except ValueError as error:
+            abort(409, str(error))
+        return jsonify(action=job, message='Recovery requested. The worker will verify saved files before continuing.'), 202
 
     @bp.post('/close/<int:schedule_id>')
     def close_month(schedule_id):

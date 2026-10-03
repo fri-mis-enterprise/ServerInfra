@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { base } from '$app/paths';
 import { goto } from '$app/navigation';
-export const auth = writable({ user: null, csrf: '', writes: false, server_time: '' });
+export const auth = writable({ user: null, csrf: '', writes: false, fast_writes: false, server_time: '' });
 export const notices = writable([]);
 let noticeId = 0;
 export function notice(text, kind = 'success') { notices.update(items => [...items, { id: ++noticeId, text, kind }]); }

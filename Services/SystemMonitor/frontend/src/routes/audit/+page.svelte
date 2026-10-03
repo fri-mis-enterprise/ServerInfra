@@ -97,11 +97,11 @@
   }
 </script>
 
-<svelte:head><title>Audit trail · DCR Access</title></svelte:head>
+<svelte:head><title>DCR audit trail · System Monitor</title></svelte:head>
 <div class="page-heading">
   <div>
-    <p class="eyebrow">ACCESS HISTORY</p>
-    <h1>Audit trail</h1>
+    <p class="eyebrow">DCR SYSTEM · ACCESS HISTORY</p>
+    <h1>DCR audit trail</h1>
     <p class="page-description">
       Dashboard actions, direct DCR changes, and automatic closures.
     </p>
