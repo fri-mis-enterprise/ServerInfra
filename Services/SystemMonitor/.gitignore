@@ -1,0 +1,46 @@
+# Local secrets. Keep the deployment template despite ServerInfra's .env* rule.
+.env
+.env.*
+!.env.example
+
+# Runtime state, database copies, and local backups.
+/data/
+/logs/
+/backups/
+/tmp/
+*.sqlite*
+*.[dD][bB][fF]
+*.[dD][bB][cC]
+*.[cC][dD][xX]
+*.[fF][pP][tT]
+*.log
+
+# Python environments, caches, coverage, and generated packages.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+/build/
+/dist/
+*.egg-info/
+
+# Machine-specific editor, agent, and OS files.
+/.idea/
+/.vscode/
+/.agents/
+/.aws/
+/.codex/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

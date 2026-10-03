@@ -30,6 +30,11 @@
   }
 
 
+	redir /systemmonitor /systemmonitor/ 308
+	handle /systemmonitor/* {
+	    reverse_proxy systemmonitor-web-1:3000
+	}
+
 	handle {
 		reverse_proxy homarr:7575
 	}

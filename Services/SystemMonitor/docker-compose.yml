@@ -1,0 +1,33 @@
+services:
+  web:
+    build: .
+    image: systemmonitor:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SYSTEM3_ROOT: /source
+      MONITOR_DATA: /data
+      BASE_PATH: /systemmonitor
+    volumes:
+      - ${SYSTEM3_ROOT:-/mnt/system3}:/source
+      - ${MONITOR_DATA:-./data}:/data
+    networks:
+      - proxy
+    ports:
+      - 127.0.0.1:${PORT:-3030}:3000
+  worker:
+    image: systemmonitor:local
+    restart: unless-stopped
+    command: ["python", "-m", "systemmonitor.worker"]
+    env_file: .env
+    environment:
+      SYSTEM3_ROOT: /source
+      MONITOR_DATA: /data
+    volumes:
+      - ${SYSTEM3_ROOT:-/mnt/system3}:/source
+      - ${MONITOR_DATA:-./data}:/data
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true

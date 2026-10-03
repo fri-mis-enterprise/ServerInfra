@@ -1,0 +1,44 @@
+{% from '_ui.html' import icon %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false}'>
+  <title>{% block title %}Overview{% endblock %} · DCR Access</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('dashboard.index') }}"><span class="brand-mark">{{ icon('shield') }}</span><span>DCR <span class="brand-light">Access</span><small>MONTH ACCESS MANAGEMENT</small></span></a>
+    <div class="topbar-tools">
+      <div class="system-clock" data-server-time="{{ server_time }}" data-time-url="{{ url_for('dashboard.server_clock') }}">
+        {{ icon('clock') }}<div><span class="clock-label">System time · Manila</span><time id="system-time" datetime="{{ server_time }}">{{ server_time|manila }}</time><span id="clock-status" class="clock-note">All deadlines follow this clock</span></div>
+      </div>
+      <span class="account"><span class="avatar">M</span><span>mis<small>Administrator</small></span></span>
+    </div>
+  </div>
+</header>
+<main id="main" class="page">
+  <div class="notifications" aria-live="polite">
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="notice notice-{{ 'error' if category == 'error' else 'warning' if category == 'warning' else 'success' }}" role="{{ 'alert' if category == 'error' else 'status' }}">
+      {{ icon('alert' if category in ['error', 'warning'] else 'check') }}<div><strong>{{ 'Action needs attention' if category == 'error' else 'Check the result' if category == 'warning' else 'Action completed' }}</strong><p>{{ message }}</p></div><button class="icon-button dismiss-notice" type="button" aria-label="Dismiss notification">{{ icon('close') }}</button>
+    </div>
+  {% endfor %}
+  </div>
+  {% block content %}{% endblock %}
+  <footer class="page-footer"><span>DCR Access · Internal operations</span><span>{{ 'Access changes enabled' if writes else 'Read-only mode' }} <span class="footer-dot">·</span> Asia/Manila (UTC+08:00)</span></footer>
+</main>
+{% if writes %}
+<dialog id="close-dialog" aria-labelledby="close-title" aria-describedby="close-description">
+  <div class="dialog-content"><span class="dialog-icon">{{ icon('lock') }}</span><h2 id="close-title">Close month access?</h2><p id="close-description">Access to <strong id="close-month-name"></strong> in <strong id="close-app-name"></strong> will close immediately. You can open it again from Open months.</p>
+  <form id="confirm-close-form" method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><div class="dialog-actions"><button class="button button-secondary" type="button" data-dialog-cancel>Keep open</button><button class="button button-danger" type="submit">{{ icon('lock') }}Close now</button></div></form></div>
+</dialog>
+{% endif %}
+</body>
+</html>

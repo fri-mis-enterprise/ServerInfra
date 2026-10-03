@@ -1,0 +1,32 @@
+{% from '_ui.html' import icon %}
+{% set attention = active|selectattr('state', 'equalto', 'error')|list|length + untracked|length %}
+{% set healthy_count = health|rejectattr('stale')|rejectattr('error')|list|length %}
+<section id="status" hx-get="{{ url_for('dashboard.status') }}" hx-trigger="every {{ interval }}s" hx-swap="outerHTML">
+  <div class="metrics">
+    <div class="metric"><span class="metric-icon">{{ icon('calendar') }}</span><div><span class="metric-label">Tracked months</span><strong>{{ active|length }}</strong><small>Temporary access & scheduled updates</small></div></div>
+    <div class="metric"><span class="metric-icon {{ 'tone-amber' if attention else '' }}">{{ icon('alert') }}</span><div><span class="metric-label">Needs attention</span><strong>{{ attention }}</strong><small>{{ 'Review the entries below' if attention else 'No access issues to review' }}</small></div></div>
+    <div class="metric"><span class="metric-icon tone-green">{{ icon('grid') }}</span><div><span class="metric-label">Applications refreshed</span><strong>{{ healthy_count }}<span class="metric-total"> / {{ health|length }}</span></strong><small>{{ 'Some applications need a fresh read' if unhealthy else 'All monitored applications are up to date' }}</small></div></div>
+  </div>
+  <div class="refresh-bar {{ 'refresh-warning' if unhealthy else '' }}"><span class="refresh-message"><span class="status-dot"></span>{{ 'Refresh needs attention — some data is stale, unavailable, or failed.' if unhealthy else 'All applications refreshed successfully.' }}</span><a class="text-action" href="{{ url_for('dashboard.index') }}">{{ icon('refresh') }}Refresh view</a></div>
+  <div class="panel exceptions-panel">
+    <div class="panel-heading"><div><h2>Access exceptions <span class="count-badge">{{ active|length + untracked|length }}</span></h2><p>Temporary openings and unexpected access</p></div><span class="live-label"><span class="status-dot"></span>Refreshes every {{ interval }}s</span></div>
+    <div class="table-wrap"><table>
+      <caption class="sr-only">Temporary openings and unexpected access</caption>
+      <thead><tr><th scope="col">Application</th><th scope="col">Month</th><th scope="col">Scheduled close <small>Manila time</small></th><th scope="col">Status & action</th></tr></thead>
+      <tbody>
+      {% for s in active %}
+        <tr><td><strong class="app-name">{{ s.app }}</strong><small>{{ {'detected':'Detected outside dashboard', 'empty_repair':'Previous-month blank ALLOW', 'dashboard':'Dashboard schedule'}.get(s.source, s.source) }}</small>{% if s.source == 'detected' %}<details class="row-details"><summary>Detection details</summary><p>First detected {{ s.created_at|manila }}. Opener and actual opening time unknown.</p></details>{% endif %}</td>
+        <td><strong>{{ months[s.month] }}</strong><small>{{ s.year }}</small></td><td class="deadline">{{ s.closes_at|manila }}</td>
+        <td><div class="status-actions"><span class="status-pill {{ 'pill-warning' if s.state == 'error' or s.stale else 'pill-neutral' if s.state == 'pending' else 'pill-success' }}"><span class="status-dot"></span>{{ 'Needs attention' if s.state == 'error' else 'Update pending' if s.source == 'empty_repair' else 'Opening pending' if s.state == 'pending' else 'Open' }}</span>{% if writes %}<form class="row-action" method="post" action="{{ url_for('dashboard.close_month', schedule_id=s.id) }}" data-app="{{ s.app }}" data-month="{{ months[s.month] }} {{ s.year }}"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="button button-close" type="submit">{{ icon('lock') }}Close now</button></form>{% endif %}</div>{% if s.stale %}<small class="field-warning">Current access unverified — refresh failed or stale</small>{% endif %}{% if s.error %}<small class="field-warning">{{ s.error }}</small>{% endif %}</td></tr>
+      {% endfor %}
+      {% for s in untracked %}<tr><td><strong class="app-name">{{ s.app }}</strong><small>Detected outside dashboard</small></td><td><strong>{{ months[s.month] }}</strong><small>{{ s.year }}</small></td><td class="muted">Not scheduled</td><td><span class="status-pill pill-warning">{{ icon('alert') }}Review required</span><small class="field-warning">Unverified or ambiguous record. Detection time and opener unknown.</small></td></tr>{% endfor %}
+      {% if not active and not untracked %}<tr><td colspan="4" class="empty-state"><span class="empty-icon">{{ icon('shield') }}</span><h3>Everything is in order</h3><p>No access exceptions in the latest observations.</p><span>Use Open months when you need temporary access.</span></td></tr>{% endif %}
+      </tbody>
+    </table></div>
+    <div class="panel-footnote">{{ icon('clock') }}Current-month access and previous-month access through the 3rd are normal. Closed entries leave this list; history is retained.</div>
+  </div>
+  <details class="panel health-panel" {% if unhealthy %}open{% endif %}><summary><span>{{ icon('grid') }}Refresh health <span class="count-badge">{{ health|length }} applications</span></span><span class="health-summary">{{ 'Review needed' if unhealthy else 'All systems healthy' }}<span class="chevron"></span></span></summary><div class="health-grid">
+  {% for h in health %}<div class="health-item"><div><strong>{{ h.app }}</strong><span class="status-pill {{ 'pill-warning' if h.error or h.stale else 'pill-success' }}">{{ 'Needs attention' if h.error or h.stale else 'Healthy' }}</span></div><small>Last successful read</small><time>{{ h.successful_at|manila }}</time>{% if h.error %}<p class="field-warning">{{ h.error }}</p>{% elif h.stale %}<p class="field-warning">Awaiting a fresh worker observation</p>{% endif %}</div>{% endfor %}
+  </div></details>
+  <p class="refresh-note">{{ icon('clock') }}Read timestamps show the latest worker observation, even if refresh stops.</p>
+</section>
