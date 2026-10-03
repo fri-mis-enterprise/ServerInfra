@@ -71,7 +71,7 @@ write so an uncertain network response does not lose the expiry.
 ## Stack and deployment
 
 - Python backend; Flask and server-rendered HTML.
-- HTMX for partial refreshes and form interactions; no frontend build step.
+- SvelteKit components and routes, built with Bun 1.4.2; Python JSON API and independent worker.
 - SQLite for durable schedules and history.
 - Waitress for the web process and a separate Python worker.
 - Docker Compose using the existing external `proxy` network.
@@ -108,7 +108,7 @@ Completed and deployed:
   health status, automatic partial refresh, and personal account authentication.
 - Backend identity checks, SQLite connection cleanup, uncertain-write retention,
   duplicate record handling, and serialized schedule updates.
-- Twenty-seven automated tests for selection, DBF writes including empty logical values, exact timestamp conversion, calendar
+- Twenty-eight automated tests for selection, DBF writes including empty logical values, exact timestamp conversion, calendar
   boundaries, restarts, replacements, failures, exclusions, and concurrency.
 - Docker Compose deployment, environment example, Caddy route, and runbook.
 - Live share verification on the eight monitored DBF files; monitoring remains
@@ -137,3 +137,11 @@ Tool action logs are not visible to the user. Send concise progress updates as
 files are completed and checks run, so ongoing work is visible without tool logs.
 
 Registration requires a single-use invitation created by `mis` from **Invitations**. Links expire after 48 hours and can be revoked before use. Share the generated link directly; raw invitation tokens are displayed only at creation and stored as SHA-256 hashes. New passwords require at least 4 characters. Existing accounts and passwords are retained.
+
+## SvelteKit migration (2026-10-03)
+
+The interface is implemented in `frontend/` using SvelteKit/Svelte. Flask serves the static build and same-origin JSON API; Python retains authentication, invitations, audit storage, DBF writes, and the scheduler. Overview, opening, login, invitation registration, audit filters/pagination, and MIS invitation management are native Svelte pages. Legacy Jinja templates and HTMX assets are removed. Docker pins Bun 1.4.2 for a reproducible frontend build. Runtime SQLite state and existing accounts are preserved.
+
+Migration verification: 28 Python tests pass, Svelte checks report no errors or warnings, and a cached-browser run against temporary records verified login redirects, audit, close/cancel, selected-month opening, one-time registration, 4-character passwords, mobile layout, deep-link reload, and logout without JavaScript or CSP errors.
+
+Deployment verified: the running image serves the SvelteKit shell and compiled assets, all six page deep links reload, the existing MIS account works, and status reports eight monitored apps. Live API and browser checks passed without DBF writes. Account hashes, existing audit rows, invitations, and schedule IDs were compared against the pre-migration SQLite backup and preserved.

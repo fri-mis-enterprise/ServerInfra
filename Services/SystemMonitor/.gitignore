@@ -44,3 +44,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# SvelteKit dependencies and compiled interface.
+/frontend/node_modules/
+/frontend/.svelte-kit/
+/frontend/build/
+/systemmonitor/frontend/

@@ -17,6 +17,7 @@ class Settings:
     def __init__(self):
         self.root = Path(os.getenv('SYSTEM3_ROOT', '/mnt/system3'))
         self.data = Path(os.getenv('MONITOR_DATA', './data'))
+        self.frontend = Path(os.getenv('FRONTEND_BUILD', str(Path(__file__).parent / 'frontend')))
         self.base = os.getenv('BASE_PATH', '/systemmonitor').rstrip('/')
         self.interval = int(os.getenv('POLL_SECONDS', '30'))
         self.writes = os.getenv('ENABLE_WRITES', 'false').lower() == 'true'

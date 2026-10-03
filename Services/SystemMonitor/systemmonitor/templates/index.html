@@ -1,6 +1,0 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="page-heading"><div><p class="eyebrow">ACCESS MANAGEMENT</p><h1>Access overview</h1><p class="page-description">Monitor temporary openings and keep month access on schedule.</p></div><a class="button button-primary" href="{{ url_for('dashboard.form') }}">{{ icon('plus') }}Open months</a></div>
-{% if not writes %}<div class="notice notice-warning">{{ icon('lock') }}<div><strong>Monitoring only</strong><p>Opening and automatic closure are disabled in read-only mode.</p></div></div>{% endif %}
-{% include '_status.html' %}
-{% endblock %}
