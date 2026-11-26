@@ -1,0 +1,213 @@
+@import "tailwindcss";
+@plugin "daisyui" { themes: false; }
+@plugin "@tailwindcss/typography";
+
+/* IBS/MSAP palette, adapted to the existing DaisyUI components. */
+@plugin "daisyui/theme" {
+  name: "ticketing";
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: #1f2226;
+  --color-base-200: #181b1e;
+  --color-base-300: #404448;
+  --color-base-content: #f0ece4;
+  --color-primary: #64c4bb;
+  --color-primary-content: #102c29;
+  --color-secondary: #8ac64b;
+  --color-secondary-content: #192b0b;
+  --color-accent: #a3b9db;
+  --color-accent-content: #17283d;
+  --color-neutral: #2a2d32;
+  --color-neutral-content: #e0e3e2;
+  --color-info: #91b6dd;
+  --color-info-content: #14283d;
+  --color-success: #8ac64b;
+  --color-success-content: #192b0b;
+  --color-warning: #e7b76a;
+  --color-warning-content: #38260c;
+  --color-error: #f28b82;
+  --color-error-content: #430c0a;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "ticketing-light";
+  default: true;
+  color-scheme: "light";
+  --color-base-100: #ffffff;
+  --color-base-200: #f7f7f7;
+  --color-base-300: #d8dddc;
+  --color-base-content: #121c2a;
+  --color-primary: #0b514d;
+  --color-primary-content: #ffffff;
+  --color-secondary: #3f7510;
+  --color-secondary-content: #ffffff;
+  --color-accent: #496b91;
+  --color-accent-content: #ffffff;
+  --color-neutral: #e8e8e8;
+  --color-neutral-content: #424848;
+  --color-info: #315f8b;
+  --color-info-content: #ffffff;
+  --color-success: #3f7510;
+  --color-success-content: #ffffff;
+  --color-warning: #995d0a;
+  --color-warning-content: #ffffff;
+  --color-error: #ba1a1a;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* ── Font overrides ────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.75rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@layer base {
+  body {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    background: var(--color-base-200);
+    color: var(--color-base-content);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .btn {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    box-shadow: none;
+  }
+
+  .input, .select, .textarea, .file-input {
+    background-color: var(--color-base-100);
+    border-color: var(--color-base-300);
+    box-shadow: none;
+  }
+
+  .input:focus, .select:focus, .textarea:focus, .file-input:focus-within {
+    border-color: var(--color-primary);
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+    outline-offset: 1px;
+  }
+
+  .card {
+    border-radius: var(--radius-box);
+  }
+
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table thead {
+    background: var(--color-base-200);
+    color: color-mix(in srgb, var(--color-base-content) 75%, transparent);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .table :where(th, td) {
+    padding: 0.75rem 1rem;
+    border-color: var(--color-base-300);
+  }
+
+  .badge {
+    font-weight: 500;
+    letter-spacing: normal;
+  }
+
+  .app-sidebar .menu a {
+    min-height: 2.75rem;
+    font-size: 0.875rem;
+  }
+
+  .app-sidebar .menu a[aria-current="page"] {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-base-100));
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+}
+
+/* ── Prosetable — better table rendering for user content ── */
+.prose table {
+  @apply table table-sm border border-base-300;
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar for wide tables to keep it subtle */
+.prose table::-webkit-scrollbar {
+  height: 4px;
+}
+
+.prose table::-webkit-scrollbar-track {
+  @apply bg-base-200;
+}
+
+.prose table::-webkit-scrollbar-thumb {
+  @apply bg-base-300 rounded-full;
+}
+
+.prose thead {
+  @apply bg-base-200;
+}
+
+.prose th,
+.prose td {
+  @apply border border-base-300;
+}
+
+/* ── Custom Scrollbar Utility ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-base-300 rounded-full transition-colors;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/40;
+}

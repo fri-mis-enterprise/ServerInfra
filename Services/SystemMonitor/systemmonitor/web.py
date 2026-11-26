@@ -13,6 +13,16 @@ from flask import Blueprint, Flask, abort, g, jsonify, request, send_from_direct
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from .backups import (
+    ALLOWED_CONFIGS,
+    BackupBridgeClient,
+    BackupBridgeError,
+    DEST_IP_RE,
+    JOB_KEY_RE,
+    SERVICE_UNIT_RE,
+    TARGET_NAME_RE,
+    TIMER_UNIT_RE,
+)
 from .config import APPS, Settings
 from .dbf import Source
 from .dbf_writer import DbfWriter
@@ -21,17 +31,21 @@ from .service import MANILA, Service, normal_access, stamp, utcnow
 from .store import Store
 
 
-def create_app(settings=None, service=None):
+def create_app(settings=None, service=None, backup_bridge=None):
     settings = settings or Settings()
     if service is None:
         source = Source(settings.root, APPS)
         service = Service(Store(settings.data), source, DbfWriter(source, settings.writes), settings.writes)
+    if backup_bridge is None:
+        sock = getattr(settings, 'backup_bridge_socket', None) or (Path(getattr(settings, 'data', Path('./data'))) / 'backup-bridge.sock')
+        backup_bridge = BackupBridgeClient(sock)
     app = Flask(__name__, static_folder=None)
     app.config.update(SECRET_KEY=settings.secret or secrets.token_hex(32),
                       SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict',
-                      SESSION_COOKIE_PATH=settings.base or '/', MAX_CONTENT_LENGTH=16384,
+                      SESSION_COOKIE_PATH=settings.base or '/', MAX_CONTENT_LENGTH=65536,
                       PERMANENT_SESSION_LIFETIME=timedelta(hours=12))
     app.extensions['monitor'] = service
+    app.extensions['backup_bridge'] = backup_bridge
     bp = Blueprint('api', __name__, url_prefix=settings.base + '/api')
     frontend = Path(getattr(settings, 'frontend', Path(__file__).parent / 'frontend')).resolve()
     if settings.password:
@@ -79,6 +93,7 @@ def create_app(settings=None, service=None):
     def session_data():
         return dict(user=service.store.user(session.get('user_id')), csrf=session['csrf'],
                     writes=settings.writes, fast_writes=getattr(settings, 'fast_writes', False),
+                    backup_controls=getattr(settings, 'backup_controls', True),
                     server_time=utcnow().isoformat(), timezone='Asia/Manila')
 
     def sign_in(user_id):
@@ -310,7 +325,7 @@ def create_app(settings=None, service=None):
             return value.astimezone(MANILA).replace(second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M')
         return jsonify(apps=list(service.source.apps), year=now.astimezone(MANILA).year,
                        writes=settings.writes, request_id=secrets.token_hex(24),
-                       close_default=local(now + timedelta(days=3)), close_min=local(now), close_max=local(now + timedelta(days=90)))
+                       close_default=local(now + timedelta(days=1)), close_min=local(now), close_max=local(now + timedelta(days=90)))
 
     @bp.post('/open')
     def open_months():
@@ -330,6 +345,221 @@ def create_app(settings=None, service=None):
             app.logger.exception('Opening request failed')
             abort(503, 'The request could not be completed. Check the dashboard before submitting again.')
         return jsonify(messages=[dict(text=r, kind='warning' if 'could not be verified' in r or 'already submitted' in r else 'success') for r in results])
+
+    # ---- System Backups API (via host backup-bridge.service) ----
+
+    def require_backup_controls():
+        if not getattr(settings, 'backup_controls', True):
+            abort(403, 'Backup controls are disabled in read-only mode.')
+
+    def call_bridge(action, params=None, timeout=None):
+        try:
+            return backup_bridge.call(action, params or {}, timeout=timeout)
+        except BackupBridgeError as exc:
+            abort(exc.status_code, str(exc))
+
+    def audit_backup(action, target, detail):
+        service.store.record_backup_event(stamp(utcnow()), g.current_user['username'], action, target, detail)
+
+    @bp.get('/backups/status')
+    def backups_status():
+        max_age = request.args.get('max_age', 36, type=int) or 36
+        max_age = max(1, min(720, max_age))
+        resp = call_bridge('status', {'max_age_hours': max_age}, timeout=10)
+        data = dict(resp.get('data') or {})
+        data['controls_enabled'] = getattr(settings, 'backup_controls', True)
+        data['activity'] = service.store.backup_events(limit=25)
+        return jsonify(**data)
+
+    @bp.get('/backups/preflight')
+    def backups_preflight():
+        resp = call_bridge('preflight', {}, timeout=20)
+        return jsonify(**(resp.get('data') or {}))
+
+    @bp.get('/backups/logs')
+    def backups_logs():
+        source = request.args.get('source', 'file')
+        if source not in ('file', 'failures', 'journal'):
+            abort(400, 'Invalid log source.')
+        path = request.args.get('path', '')
+        unit = request.args.get('unit', '')
+        lines = max(10, min(1000, request.args.get('lines', 400, type=int) or 400))
+        if unit and not SERVICE_UNIT_RE.fullmatch(unit):
+            abort(400, 'Invalid backup unit.')
+        resp = call_bridge('logs', {'source': source, 'path': path, 'unit': unit, 'lines': lines}, timeout=10)
+        return jsonify(**(resp.get('data') or {}))
+
+    @bp.get('/backups/configs')
+    def backups_configs():
+        resp = call_bridge('configs', {}, timeout=10)
+        return jsonify(**(resp.get('data') or {}))
+
+    @bp.post('/backups/validate-calendar')
+    def backups_validate_calendar():
+        data = payload()
+        schedule = str(data.get('schedule', '')).strip()
+        if not schedule or '\n' in schedule or '\r' in schedule:
+            abort(400, 'Enter a single-line systemd OnCalendar expression.')
+        resp = call_bridge('validate_calendar', {'schedule': schedule}, timeout=6)
+        return jsonify(**(resp.get('data') or {}))
+
+    @bp.post('/backups/run')
+    def backups_run():
+        require_backup_controls()
+        data = payload()
+        scope = str(data.get('scope', '')).strip()
+        if scope == 'all':
+            include_ibs = bool(data.get('include_ibs', True))
+            resp = call_bridge('run_all', {'include_ibs': include_ibs})
+            msg = resp.get('message', 'Started all backups.')
+            audit_backup('run_all', 'all', msg)
+            return jsonify(message=msg)
+        if scope == 'target':
+            target = str(data.get('target', '')).strip().lower()
+            if target != 'ibs' and not TARGET_NAME_RE.fullmatch(target):
+                abort(400, 'Choose a valid backup target.')
+            resp = call_bridge('run_target', {'target': target})
+            msg = resp.get('message', f'Started backup for {target}.')
+            audit_backup('run_target', target, msg)
+            return jsonify(message=msg)
+        if scope == 'job':
+            key = str(data.get('key', '')).strip().lower()
+            if not JOB_KEY_RE.fullmatch(key):
+                abort(400, 'Choose a valid backup job.')
+            resp = call_bridge('run_job', {'key': key})
+            msg = resp.get('message', f'Started job {key}.')
+            audit_backup('run_job', key, msg)
+            return jsonify(message=msg)
+        abort(400, 'Choose a valid run scope (job, target, or all).')
+
+    @bp.post('/backups/stop')
+    def backups_stop():
+        require_backup_controls()
+        data = payload()
+        unit = str(data.get('unit', '')).strip()
+        if not SERVICE_UNIT_RE.fullmatch(unit):
+            abort(400, 'Invalid backup service unit.')
+        resp = call_bridge('stop_unit', {'unit': unit})
+        msg = resp.get('message', f'Stopped {unit}.')
+        audit_backup('stop_unit', unit, msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/timers/toggle')
+    def backups_timer_toggle():
+        require_backup_controls()
+        data = payload()
+        timer = str(data.get('timer', '')).strip()
+        enabled = bool(data.get('enabled', True))
+        if not TIMER_UNIT_RE.fullmatch(timer):
+            abort(400, 'Invalid backup timer unit.')
+        resp = call_bridge('timer_toggle', {'timer': timer, 'enabled': enabled})
+        msg = resp.get('message', f'Updated {timer}.')
+        audit_backup('timer_toggle', timer, msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/timers/schedule')
+    def backups_timer_schedule():
+        require_backup_controls()
+        data = payload()
+        timer = str(data.get('timer', '')).strip()
+        schedule = str(data.get('schedule', '')).strip()
+        if not TIMER_UNIT_RE.fullmatch(timer):
+            abort(400, 'Invalid backup timer unit.')
+        if not schedule or '\n' in schedule or '\r' in schedule:
+            abort(400, 'Enter a valid single-line schedule.')
+        resp = call_bridge('timer_schedule', {'timer': timer, 'schedule': schedule})
+        msg = resp.get('message', f'Updated schedule for {timer}.')
+        audit_backup('timer_schedule', timer, msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/targets/register')
+    def backups_target_register():
+        require_backup_controls()
+        data = payload()
+        name = str(data.get('name', '')).strip().lower()
+        dest_ip = str(data.get('dest_ip', '')).strip()
+        schedule = str(data.get('schedule', '')).strip()
+        enabled = bool(data.get('enabled', True))
+        username = str(data.get('username', '')).strip()
+        password = str(data.get('password', ''))
+        domain = str(data.get('domain', '')).strip()
+        keep_cred = bool(data.get('keep_cred', False))
+
+        if not TARGET_NAME_RE.fullmatch(name) or name in ('ibs', 'all'):
+            abort(400, 'Target name must be 1–24 lowercase letters, numbers, hyphens, or underscores (not "ibs" or "all").')
+        if not DEST_IP_RE.fullmatch(dest_ip):
+            abort(400, 'Enter a valid destination IP address or hostname.')
+        if not schedule or '\n' in schedule or '\r' in schedule:
+            abort(400, 'Enter a valid single-line systemd OnCalendar schedule.')
+        if not keep_cred and not username:
+            abort(400, 'Enter an SMB username for this backup target.')
+        if any('\n' in s or '\r' in s for s in (username, password, domain)):
+            abort(400, 'Credentials cannot contain line breaks.')
+
+        resp = call_bridge('register_target', {
+            'name': name,
+            'dest_ip': dest_ip,
+            'schedule': schedule,
+            'enabled': enabled,
+            'username': username,
+            'password': password,
+            'domain': domain,
+            'keep_cred': keep_cred,
+        })
+        msg = resp.get('message', f'Saved backup target {name}.')
+        audit_backup('register_target', name, f'{dest_ip} · {schedule} ({"enabled" if enabled else "disabled"})')
+        return jsonify(message=msg)
+
+    @bp.post('/backups/targets/delete')
+    def backups_target_delete():
+        require_backup_controls()
+        data = payload()
+        name = str(data.get('name', '')).strip().lower()
+        if not TARGET_NAME_RE.fullmatch(name) or name in ('ibs', 'all'):
+            abort(400, 'Choose a valid registered backup target.')
+        resp = call_bridge('delete_target', {'name': name})
+        msg = resp.get('message', f'Deleted backup target {name}.')
+        audit_backup('delete_target', name, msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/configs/save')
+    def backups_config_save():
+        require_backup_controls()
+        data = payload()
+        cfg_id = str(data.get('id', '')).strip()
+        content = data.get('content', '')
+        if cfg_id not in ALLOWED_CONFIGS:
+            abort(400, 'Choose a valid configuration file (backup, ibs, or notify).')
+        if not isinstance(content, str) or len(content) > 60000:
+            abort(400, 'Configuration text is invalid or too large.')
+        resp = call_bridge('save_config', {'id': cfg_id, 'content': content})
+        msg = resp.get('message', f'Saved {cfg_id}.conf.')
+        audit_backup('save_config', cfg_id, msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/tools/test-notify')
+    def backups_test_notify():
+        require_backup_controls()
+        resp = call_bridge('test_notify', {'target': 'systemmonitor'}, timeout=25)
+        msg = resp.get('message', 'Sent test notification.')
+        audit_backup('test_notify', 'notify', msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/tools/clear-failures')
+    def backups_clear_failures():
+        require_backup_controls()
+        resp = call_bridge('clear_failures', {})
+        msg = resp.get('message', 'Cleared failures.log.')
+        audit_backup('clear_failures', 'failures.log', msg)
+        return jsonify(message=msg)
+
+    @bp.post('/backups/tools/rebuild-manifest')
+    def backups_rebuild_manifest():
+        require_backup_controls()
+        resp = call_bridge('rebuild_manifest', {})
+        msg = resp.get('message', 'Cleared FAST station manifest cache.')
+        audit_backup('rebuild_manifest', 'fast', msg)
+        return jsonify(message=msg)
 
     app.register_blueprint(bp)
 

@@ -1,0 +1,4 @@
+.env
+# Retained local files from the retired backend can contain real databases/uploads.
+/Backend/
+/backups/

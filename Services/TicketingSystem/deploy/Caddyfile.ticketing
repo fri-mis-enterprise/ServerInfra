@@ -1,0 +1,5 @@
+# Insert inside the existing 192.168.0.254 site block, before its fallback handle.
+redir /ticketing /ticketing/ 308
+handle /ticketing/* {
+    reverse_proxy ticketing-web:3000
+}

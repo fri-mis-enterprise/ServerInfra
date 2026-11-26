@@ -82,6 +82,8 @@
         ><Icon name="shield" />DCR access</a
       ><a class:selected={path === "/fast"} aria-current={path === "/fast" ? "page" : undefined} href={`${base}/fast`}
         ><Icon name="calendar" />FAST periods</a
+      ><a class:selected={path === "/backups"} aria-current={path === "/backups" ? "page" : undefined} href={`${base}/backups`}
+        ><Icon name="database" />Backups</a
       ><a class:selected={path === "/audit"} href={`${base}/audit`}
         ><Icon name="clock" />DCR audit trail</a
       >{#if $auth.user.username === "mis"}<a

@@ -87,6 +87,21 @@ def test_open_close_and_resume_partial_month(tmp_path):
     assert store.fast_observations()[0]['summary']['periods']['2026-09']['status'] == 'closed_records_present'
 
 
+def test_24_bit_directory_keys_accepted():
+    index = bytearray(3072)
+    struct.pack_into('<I', index, 0, 1024)
+    struct.pack_into('<HH', index, 1024, 3, 1)
+    struct.pack_into('<I', index, 1024 + 14, 0x00ffffff)
+    index[1024 + 23] = 4
+    index[1024 + 24:1024 + 28] = (1536).to_bytes(4, 'little')
+    index[1536 + 14] = 0x60
+    expression = b'DTOS(TRANS_DATE)\0'
+    struct.pack_into('<H', index, 1536 + 506, 1)
+    struct.pack_into('<H', index, 1536 + 510, len(expression))
+    index[1536 + 512:1536 + 512 + len(expression)] = expression
+    assert checked_index(index) == 1
+
+
 def test_index_filter_and_unrelated_change_block_write(tmp_path):
     root = tmp_path / 'share'
     path = monthly(root)

@@ -1,0 +1,14 @@
+import { command, query } from '$app/server';
+import { z } from 'zod';
+import { requireAuth } from './server/auth';
+import { getDb } from './server/db';
+import * as service from './server/notifications';
+import { notificationIdSchema, notificationListSchema, pushSubscriptionSchema } from './validation/notifications';
+export const getNotifications = query(notificationListSchema, async input => service.readNotifications(getDb(), await requireAuth(), input));
+export const getNotificationUnreadCount = query(async () => service.unreadNotifications(getDb(), await requireAuth()));
+export const markNotificationRead = command(notificationIdSchema, async id => service.markNotificationRead(getDb(), await requireAuth(), id));
+export const markAllNotificationsRead = command(async () => service.markAllNotificationsRead(getDb(), await requireAuth()));
+export const deleteNotification = command(notificationIdSchema, async id => service.deleteNotification(getDb(), await requireAuth(), id));
+export const getVapidPublicKey = query(() => ({ publicKey: process.env.VAPID_PUBLIC_KEY || '' }));
+export const subscribePush = command(pushSubscriptionSchema, async input => service.subscribePush(getDb(), await requireAuth(), input));
+export const unsubscribePush = command(z.url().max(4096), async endpoint => service.unsubscribePush(getDb(), await requireAuth(), endpoint));

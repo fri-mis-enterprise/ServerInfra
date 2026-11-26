@@ -3,10 +3,11 @@
 .env.*
 !.env.example
 
-# Runtime state, database copies, and local backups.
+# Runtime state, database copies, and local backup credentials.
 /data/
 /logs/
-/backups/
+/backups/etc/backups/creds/*
+!/backups/etc/backups/creds/*.example
 /tmp/
 *.sqlite*
 *.[dD][bB][fF]

@@ -1,9 +1,27 @@
 # SystemMonitor
 
 Internal system monitoring and operations workspace. The Systems home page leads
-to DCR access management at `/systemmonitor/dcr` and FAST station
-period monitoring at `/systemmonitor/fast`. [PLAN.md](PLAN.md) defines DCR behavior;
+to DCR access management at `/systemmonitor/dcr`, FAST station
+period monitoring at `/systemmonitor/fast`, and System Backups at
+`/systemmonitor/backups`. [PLAN.md](PLAN.md) defines DCR behavior;
 [docs/runbook.md](docs/runbook.md) covers deployment and DBF operation.
+
+### System Backups (`/systemmonitor/backups`)
+
+Host backup scripts, systemd timers, CLI (`backup-status`), and the Unix-socket
+host bridge (`backup-bridge.service`) live in `backups/`. To install or update
+the host backup suite and bridge:
+
+```bash
+sudo bash backups/install.sh
+```
+
+`backup-bridge.service` listens on `./data/backup-bridge.sock` (shared into the
+unprivileged `web` container via `./data:/data`), so SystemMonitor can display
+live target tiles, trigger on-demand target or single-job runs, stream logs,
+manage schedules, and register/edit/delete backup targets directly from the web
+UI without exposing `/etc/backups/creds/` to Docker. Set
+`BACKUP_ENABLE_CONTROLS=false` in `.env` for monitoring-only mode.
 
 FAST monthly-period access is available as a read-only inspection command:
 `.venv/bin/python -m systemmonitor.fast --year 2026 --month 9`.

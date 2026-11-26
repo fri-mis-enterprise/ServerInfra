@@ -64,6 +64,10 @@ class Store:
                     allow_value INTEGER, seen_at TEXT NOT NULL, pending_schedule_id INTEGER,
                     PRIMARY KEY(app,recid,record_date)
                 );
+                CREATE TABLE IF NOT EXISTS backup_events (
+                    id INTEGER PRIMARY KEY, at TEXT NOT NULL, actor TEXT NOT NULL,
+                    action TEXT NOT NULL, target TEXT NOT NULL, detail TEXT NOT NULL
+                );
             ''')
             fast_columns = {r['name'] for r in db.execute('PRAGMA table_info(fast_scan)')}
             for name in ('station', 'requested_by', 'requested_at'):
@@ -410,3 +414,20 @@ class Store:
             page = max(1, min(page, pages))
             entries = [dict(r) for r in db.execute('SELECT * FROM (' + query + ')' + where + ' ORDER BY id DESC LIMIT 50 OFFSET ?', values + [(page - 1) * 50])]
             return dict(entries=entries, total=total, page=page, pages=pages)
+
+    def record_backup_event(self, now, actor, action, target, detail):
+        with self.connect() as db:
+            db.execute(
+                'INSERT INTO backup_events(at,actor,action,target,detail) VALUES(?,?,?,?,?)',
+                (now, actor, action, target, detail),
+            )
+
+    def backup_events(self, limit=30):
+        with self.connect() as db:
+            return [
+                dict(r)
+                for r in db.execute(
+                    'SELECT id,at,actor,action,target,detail FROM backup_events ORDER BY id DESC LIMIT ?',
+                    (limit,),
+                )
+            ]

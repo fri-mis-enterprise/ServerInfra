@@ -23,6 +23,8 @@ class Settings:
         self.fast_root = Path(os.getenv('FAST_ROOT', '/mnt/fast_system'))
         self.writes = os.getenv('ENABLE_WRITES', 'false').lower() == 'true'
         self.fast_writes = os.getenv('FAST_ENABLE_WRITES', 'false').lower() == 'true'
+        self.backup_controls = os.getenv('BACKUP_ENABLE_CONTROLS', 'true').lower() == 'true'
+        self.backup_bridge_socket = Path(os.getenv('BACKUP_BRIDGE_SOCKET', str(self.data / 'backup-bridge.sock')))
         self.password = os.getenv('ADMIN_PASSWORD', '')
         self.secret = os.getenv('SECRET_KEY', '')
         self.trusted_proxy_host = os.getenv('TRUSTED_PROXY_HOST', 'caddy')

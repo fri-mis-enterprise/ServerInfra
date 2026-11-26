@@ -999,6 +999,11 @@ label {
   color: #536279
 }
 
+input[type=text],
+input[type=password],
+input[type=email],
+input[type=search],
+input[type=time],
 input[type=number],
 input[type=datetime-local],
 select {
@@ -1011,17 +1016,28 @@ select {
   color: #34445d;
   font-size: 12px;
   margin-top: 7px;
-  min-height: 42px
+  min-height: 42px;
+  transition: border-color .15s, box-shadow .15s
 }
 
 input:hover,
-select:hover {
+select:hover,
+textarea:hover {
   border-color: #aebfd6
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   border-color: #7594c7
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f3f6fa;
+  color: #7c8aa0;
+  cursor: not-allowed
 }
 
 input[type=checkbox] {
@@ -2313,4 +2329,758 @@ button.text-action {
 
 .invitation-history table {
   width: 100%
+}
+
+/* System backups: targets, logs, and configuration. */
+.pill-info {
+  background: #e9f1fe;
+  color: var(--blue);
+  border-color: #c5d8fa
+}
+
+.backup-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px
+}
+
+.backup-metrics {
+  grid-template-columns: repeat(4, 1fr)
+}
+
+.backup-mounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 22px
+}
+
+.backup-mounts .status-pill {
+  font-size: 10px
+}
+
+.backup-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 22px
+}
+
+.backup-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #7c8aa0;
+  padding: 10px 14px;
+  margin-bottom: -1px;
+  font-size: 12px;
+  font-weight: 550
+}
+
+.backup-tab:hover {
+  color: var(--blue)
+}
+
+.backup-tab.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  font-weight: 600
+}
+
+.backup-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 24px 20px
+}
+
+.backup-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: white;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, background .15s
+}
+
+.backup-tile:hover {
+  border-color: #bacce9
+}
+
+.backup-tile.selected {
+  border-color: #7395d0;
+  background: #f7f9fe;
+  box-shadow: 0 0 0 2px #e4edfc
+}
+
+.backup-tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px
+}
+
+.backup-tile-head strong {
+  display: block;
+  font-size: 15px;
+  text-transform: capitalize
+}
+
+.backup-tile-dest {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+  overflow-wrap: anywhere
+}
+
+.backup-tile-head .status-pill {
+  font-size: 9px
+}
+
+.backup-tile-phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere
+}
+
+.backup-tile-phase .status-dot {
+  color: var(--green)
+}
+
+.backup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px
+}
+
+.backup-chip {
+  display: inline-flex;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: .1px
+}
+
+.backup-job-key {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 2px
+}
+
+.backup-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #edf0f5
+}
+
+.backup-tile-foot > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.6;
+  overflow-wrap: anywhere
+}
+
+.backup-tile-foot .icon {
+  width: 12px;
+  height: 12px;
+  margin-top: 1px
+}
+
+.backup-tile-foot .button {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 9px
+}
+
+.backup-detail {
+  margin-top: 20px
+}
+
+.backup-detail-head {
+  align-items: flex-start;
+  flex-wrap: wrap
+}
+
+.backup-detail-head > div:first-child {
+  min-width: 0
+}
+
+.backup-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px
+}
+
+.backup-detail-actions .button {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 10px
+}
+
+.backup-archive {
+  max-width: 220px;
+  overflow-wrap: anywhere;
+  font-size: 10px
+}
+
+.backup-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px
+}
+
+.backup-row-actions .button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 9px
+}
+
+.backup-activity {
+  margin-top: 20px
+}
+
+.backup-activity-list {
+  display: grid;
+  gap: 10px;
+  padding: 0 24px 20px
+}
+
+.backup-activity-list > div {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-size: 11px
+}
+
+.backup-activity-list small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+  overflow-wrap: anywhere
+}
+
+.backup-activity-list .status-pill {
+  font-size: 9px;
+  margin-left: 4px
+}
+
+.backup-log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px
+}
+
+.backup-log-toolbar .button {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 10px
+}
+
+.backup-log-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+  padding: 0 24px 24px
+}
+
+.backup-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 520px;
+  overflow: auto
+}
+
+.backup-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #536279;
+  padding: 9px 10px;
+  font-size: 11px
+}
+
+.backup-log-item:hover {
+  background: #f5f7fa
+}
+
+.backup-log-item.active {
+  background: #eff4ff;
+  border-color: #cfddf6;
+  color: #2f579c
+}
+
+.backup-log-item .icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px
+}
+
+.backup-log-item span {
+  min-width: 0;
+  overflow-wrap: anywhere
+}
+
+.backup-log-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  margin-top: 2px
+}
+
+.backup-log-view {
+  min-width: 0
+}
+
+.backup-log-output {
+  margin: 0;
+  background: #17243a;
+  color: #d7e3f4;
+  border-radius: 8px;
+  padding: 16px;
+  font: 11px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 520px;
+  overflow: auto
+}
+
+.backup-config-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 22px;
+  padding: 0 24px 24px;
+  align-items: start
+}
+
+.backup-config-form label {
+  margin-bottom: 14px
+}
+
+.backup-config-textarea {
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  margin-top: 7px;
+  padding: 12px;
+  border: 1px solid #dce3ed;
+  border-radius: 6px;
+  background: #fff;
+  color: #34445d;
+  font: 11px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  resize: vertical
+}
+
+.backup-config-actions {
+  display: flex;
+  justify-content: flex-end
+}
+
+.backup-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  background: #fafbfd
+}
+
+.backup-tools h3 {
+  font-size: 11px;
+  color: #62748c;
+  text-transform: uppercase;
+  letter-spacing: .35px
+}
+
+.backup-tools .button {
+  justify-content: flex-start
+}
+
+.backup-tools .input-help {
+  margin-top: 4px
+}
+
+.backup-dialog-wide {
+  width: min(720px, calc(100% - 32px));
+  max-height: 90vh;
+  overflow: auto
+}
+
+.backup-form-section {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafbfd
+}
+
+.backup-form-section h3 {
+  font-size: 11px;
+  font-weight: 650;
+  color: #536279;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+  margin-bottom: 10px
+}
+
+.backup-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px
+}
+
+.backup-form-dialog label {
+  margin-top: 10px
+}
+
+.backup-form-grid label {
+  margin-top: 0
+}
+
+.backup-form-dialog .backup-check {
+  margin-top: 12px
+}
+
+.backup-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer
+}
+
+.backup-check input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  cursor: pointer
+}
+
+/* Intuitive Schedule Picker */
+.schedule-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px
+}
+
+.schedule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px
+}
+
+.schedule-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px
+}
+
+.schedule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #536279
+}
+
+.schedule-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px
+}
+
+.schedule-preset {
+  border: 1px solid #d5dfed;
+  background: #fff;
+  color: #4a5d7a;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 10px;
+  font-weight: 550
+}
+
+.schedule-preset:hover {
+  border-color: #7395d0;
+  color: var(--blue);
+  background: #f2f6fe
+}
+
+.schedule-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px
+}
+
+.day-pill {
+  border: 1px solid #d5dfed;
+  background: #fff;
+  color: #536279;
+  border-radius: 6px;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  transition: background .12s, border-color .12s, color .12s
+}
+
+.day-pill:hover {
+  border-color: #8aa7d8
+}
+
+.day-pill.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff
+}
+
+.schedule-times-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px
+}
+
+.time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff4ff;
+  border: 1px solid #c5d8fa;
+  color: #264c91;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600
+}
+
+.time-chip .icon {
+  width: 13px;
+  height: 13px
+}
+
+.time-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #5874a8;
+  padding: 1px;
+  border-radius: 4px
+}
+
+.time-chip-remove:hover {
+  background: #dce8fc;
+  color: var(--red)
+}
+
+.time-chip-remove .icon {
+  width: 12px;
+  height: 12px
+}
+
+.schedule-add-time {
+  display: flex;
+  align-items: center;
+  gap: 8px
+}
+
+.schedule-add-time input[type=time] {
+  width: 150px;
+  margin-top: 0;
+  min-height: 36px;
+  padding: 6px 10px
+}
+
+.schedule-add-time .button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 11px
+}
+
+.schedule-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px solid #dce3ed
+}
+
+.schedule-summary-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy)
+}
+
+.schedule-summary-text .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--blue)
+}
+
+.schedule-summary .button {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 10px
+}
+
+.schedule-validation .status-pill {
+  white-space: normal;
+  font-size: 10px;
+  text-align: left
+}
+
+.schedule-advanced {
+  font-size: 11px;
+  color: var(--muted)
+}
+
+.schedule-advanced summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0
+}
+
+.schedule-advanced code {
+  background: #eef2f8;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #34445d;
+  font-size: 10px
+}
+
+.schedule-advanced label {
+  margin-top: 8px
+}
+
+.backup-log-dialog .backup-log-output {
+  max-height: 360px;
+  margin-top: 14px
+}
+
+.backup-log-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px
+}
+
+.backup-log-tabs .button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 10px
+}
+
+.backup-log-tabs .button.active {
+  border-color: #7395d0;
+  background: #eff4ff;
+  color: #2f579c
+}
+
+.backup-preflight-dialog {
+  max-height: 80vh;
+  overflow: auto
+}
+
+.backup-preflight-table {
+  min-width: 560px;
+  margin-top: 16px
+}
+
+.backup-preflight-table th {
+  padding: 10px 14px
+}
+
+.backup-preflight-table td {
+  padding: 12px 14px;
+  font-size: 11px;
+  overflow-wrap: anywhere
+}
+
+.backup-preflight-table .status-pill {
+  font-size: 9px
+}
+
+@media(max-width:1100px) {
+  .backup-metrics {
+    grid-template-columns: repeat(2, 1fr)
+  }
+
+  .backup-tile-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+  }
+}
+
+@media(max-width:900px) {
+  .backup-tile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+  }
+
+  .backup-log-layout,
+  .backup-config-layout {
+    grid-template-columns: 1fr
+  }
+
+  .backup-log-list {
+    max-height: 240px
+  }
+}
+
+@media(max-width:760px) {
+  .backup-page-actions,
+  .backup-detail-actions {
+    justify-content: flex-start
+  }
+}
+
+@media(max-width:560px) {
+  .backup-metrics,
+  .backup-tile-grid,
+  .backup-form-grid {
+    grid-template-columns: 1fr
+  }
+
+  .backup-page-actions .button {
+    width: 100%
+  }
 }

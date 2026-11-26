@@ -1,0 +1,17 @@
+[Unit]
+Description=SystemMonitor Host Backup Bridge (Unix socket daemon)
+After=network-online.target local-fs.target
+
+[Service]
+Type=simple
+Environment=BACKUP_BRIDGE_SOCKET=/home/mis/Services/SystemMonitor/data/backup-bridge.sock
+Environment=BACKUP_BRIDGE_UID=1000
+Environment=BACKUP_BRIDGE_GID=1000
+ExecStart=/usr/bin/python3 /opt/backups/backup-bridge.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

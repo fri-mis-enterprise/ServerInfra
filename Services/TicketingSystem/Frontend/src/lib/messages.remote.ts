@@ -1,0 +1,13 @@
+import { command, query } from '$app/server';
+import { requireAuth } from './server/auth';
+import { getDb } from './server/db';
+import * as service from './server/messages';
+import { deliverNotifications } from './server/notifications';
+import { contactIdSchema, contactSearchSchema, sendMessageSchema } from './validation/messages';
+export const getConversations = query(async () => service.readConversations(getDb(), await requireAuth()));
+export const getMessages = query(contactIdSchema, async id => service.readMessages(getDb(), await requireAuth(), id));
+export const markMessagesRead = command(contactIdSchema, async id => service.markMessagesRead(getDb(), await requireAuth(), id));
+export const getMessageUnreadCount = query(async () => service.unreadMessages(getDb(), await requireAuth()));
+export const getContact = query(contactIdSchema, async id => { await requireAuth(); return service.readContact(getDb(), id); });
+export const searchContacts = query(contactSearchSchema, async text => { await requireAuth(); return service.searchContacts(getDb(), text); });
+export const sendMessage = command(sendMessageSchema, async input => { const result = service.sendMessage(getDb(), await requireAuth(), input); await deliverNotifications(result.notifications); return result.message; });

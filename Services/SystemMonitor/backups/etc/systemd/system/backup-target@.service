@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Fast, System3, and SQL backups for target %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/backups/run-target.sh %i
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+StandardOutput=journal
+StandardError=journal

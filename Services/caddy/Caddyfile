@@ -35,6 +35,18 @@
 	    reverse_proxy systemmonitor-web-1:3000
 	}
 
+
+	redir /mis-gendoc /mis-gendoc/ 308
+	handle /mis-gendoc/* {
+	    reverse_proxy misgendoc-web-1:3000
+	}
+
+  redir /ticketing /ticketing/ 308
+
+  handle /ticketing/* {
+      reverse_proxy ticketing-web:3000
+  }
+ 
 	handle {
 		reverse_proxy homarr:7575
 	}

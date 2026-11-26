@@ -93,7 +93,7 @@ def test_server_clock_uses_scheduler_time_and_requires_auth(rig, monkeypatch):
     assert result.headers['Cache-Control'] == 'no-store'
     options = client.get(BASE + '/open-options').json
     assert options['close_min'] == '2026-10-03T09:30'
-    assert options['close_default'] == '2026-10-06T09:30'
+    assert options['close_default'] == '2026-10-04T09:30'
     assert options['request_id']
 
 

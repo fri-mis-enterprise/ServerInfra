@@ -1,0 +1,10 @@
+[Unit]
+Description=Scheduled backups for Roi (.46) - Mon-Sat at 08:00, 13:00, 17:00
+
+[Timer]
+Unit=backup-target@roi.service
+OnCalendar=Mon..Sat 08,13,17:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,3 +1,7 @@
+# Bun and Codex command paths
+export BUN_INSTALL="/home/mis/.bun"
+export PATH="/home/mis/.bun/bin:/home/mis/.local/bin:$PATH"
+
 #
 # ~/.bashrc
 #
@@ -13,3 +17,7 @@ if [[ -z "$ZSH_VERSION" ]] && command -v zsh >/dev/null 2>&1; then
 	exec zsh
 fi
 . "$HOME/.cargo/env"
+
+# >>> Codex installer >>>
+export PATH="/home/mis/.local/bin:$PATH"
+# <<< Codex installer <<<

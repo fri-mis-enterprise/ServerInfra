@@ -33,3 +33,7 @@ export VISUAL="nvim"
 # ls with Icons
 alias ls="eza --icons=auto --group-directories-first"
 alias la="ls -l"
+
+
+# Added by Antigravity CLI installer
+export PATH="/home/mis/.local/bin:$PATH"

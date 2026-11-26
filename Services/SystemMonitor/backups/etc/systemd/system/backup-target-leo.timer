@@ -1,0 +1,10 @@
+[Unit]
+Description=Scheduled backups for Leo (.47) - Mon-Sat at 10:00
+
+[Timer]
+Unit=backup-target@leo.service
+OnCalendar=Mon..Sat 10:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

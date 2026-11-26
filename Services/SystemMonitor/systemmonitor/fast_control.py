@@ -39,7 +39,7 @@ def checked_index(blob):
         raise ValueError('Unsupported monthly index directory tree')
     recmask = struct.unpack_from('<I', page, 14)[0]
     recbytes = page[23]
-    if recmask not in (0xffff, 0xffffffff) or recbytes not in (3, 5) or 24 + count * recbytes > 512:
+    if recmask not in (0xffff, 0x00ffffff, 0xffffffff) or recbytes not in (3, 4, 5) or 24 + count * recbytes > 512:
         raise ValueError('Unsupported monthly index directory keys')
     offsets = [int.from_bytes(page[24 + i * recbytes:24 + i * recbytes + 4], 'little') & recmask
                for i in range(count)]

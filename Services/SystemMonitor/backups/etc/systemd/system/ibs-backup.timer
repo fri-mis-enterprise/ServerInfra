@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily IBS PostgreSQL backup timer (Asia/Manila)
+
+[Timer]
+Unit=ibs-backup.service
+OnCalendar=*-*-* 00:00:00 Asia/Manila
+Persistent=false
+
+[Install]
+WantedBy=timers.target

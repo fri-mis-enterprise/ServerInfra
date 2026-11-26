@@ -62,6 +62,26 @@
       <a class="button button-primary" href={`${base}/fast`}>Open FAST<Icon name="arrow" /></a>
     </div>
   </section>
+
+  <section class="panel system-card" aria-labelledby="backups-title">
+    <div class="system-card-top">
+      <span class="system-symbol"><Icon name="database" /></span>
+      <span class={`status-pill ${$auth.backup_controls ? 'pill-success' : 'pill-neutral'}`}>{$auth.backup_controls ? 'Controls enabled' : 'Monitoring only'}</span>
+    </div>
+    <p class="eyebrow">DATA PROTECTION</p>
+    <h2 id="backups-title">System Backups</h2>
+    <p class="system-description">
+      Monitor FAST, System3, SQL, and IBS backups across targets, register new backup destinations, and run jobs on demand.
+    </p>
+    <div class="system-capabilities">
+      <span><Icon name="play" />On-demand target and single-job runs</span>
+      <span><Icon name="plus" />Target registration, schedules, and live logs</span>
+    </div>
+    <div class="system-card-footer">
+      <span class="system-mode"><Icon name={$auth.backup_controls ? 'check' : 'lock'} />{$auth.backup_controls ? 'Backup controls enabled' : 'Backup monitoring only'}</span>
+      <a class="button button-primary" href={`${base}/backups`}>Open Backups<Icon name="arrow" /></a>
+    </div>
+  </section>
 </div>
 
 <div class="panel workspace-note">

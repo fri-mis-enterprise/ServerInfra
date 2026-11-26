@@ -12,3 +12,10 @@ Services/homarr/appdata
 Services/FastAudit/data/
 .env*
 .codex
+.bun
+.cargo
+.gemini
+.npm
+.orca-remote
+.orca
+.rustup
